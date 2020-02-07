@@ -1,0 +1,18 @@
+### Java ###
+*.class
+
+### Gradle ###
+**/.gradle/
+**/build/
+
+### IntelliJ ###
+**/.idea/
+**/out/
+*.iml
+
+### Generated sources ###
+**/generated-src/
+
+### Other ###
+**/resources/database.properties
+**/resources/datasource.properties

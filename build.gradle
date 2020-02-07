@@ -1,0 +1,179 @@
+plugins {
+    id 'java'
+}
+
+group 'druttis'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.6'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.6'
+    compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.25'
+    compile group: 'mysql', name: 'mysql-connector-java', version: '5.1.22'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+def generatedSrcDir = new File(projectDir, "generated-src")
+def pairsPackageName = "org.dru.dusap.api.dto.pair"
+def pairsSrcOutputDir = new File(generatedSrcDir, pairsPackageName.replaceAll("\\\\.", File.separator))
+
+static def javaName(String name) {
+    return name.substring(0, 1).toUpperCase() << name.substring(1)
+}
+
+sourceSets.main.java.srcDirs += generatedSrcDir
+
+compileJava.dependsOn('generatePairDtoSources')
+clean.dependsOn('cleanPairDtoSources')
+
+task cleanPairDtoSources {
+    doFirst {
+        pairsSrcOutputDir.deleteDir()
+    }
+}
+
+task generatePairDtoSources {
+    def primitiveTypes = [byte, char, short, int, long, float, double, String]
+    def objectTypes = [Byte, Character, Short, Integer, Long, Float, Double, String]
+    def quotes = ["char": "'", "String": "\\\""]
+    doFirst {
+        pairsSrcOutputDir.exists() || pairsSrcOutputDir.mkdirs()
+        for (int keyIndex = 0; keyIndex < primitiveTypes.size(); keyIndex++) {
+            def keyPrimitive = primitiveTypes[keyIndex].simpleName
+            def keyObject = objectTypes[keyIndex].simpleName
+            for (int valueIndex = 0; valueIndex < primitiveTypes.size(); valueIndex++) {
+                def valuePrimitive = primitiveTypes[valueIndex].simpleName
+                def valueObject = objectTypes[valueIndex].simpleName
+                //
+                // generate TypeTypePairDto
+                //
+                def pairName = "${javaName(keyPrimitive)}${javaName(valuePrimitive)}PairDto"
+                def pairCode = new StringBuilder()
+                pairCode << "package $pairsPackageName;\n"
+                pairCode << "\n"
+                pairCode << "import java.util.Map;\n"
+                pairCode << "import java.util.Objects;\n"
+                pairCode << "import java.util.stream.Collectors;\n"
+                pairCode << "import java.util.stream.Stream;\n"
+                pairCode << "\n"
+                pairCode << "public final class $pairName {\n"
+                pairCode << "\tpublic static $pairName make(final $keyPrimitive key, final $valuePrimitive value) {\n"
+                pairCode << "\t\treturn new $pairName(key, value);\n"
+                pairCode << "\t}\n"
+                pairCode << "\n"
+                pairCode << "\tpublic static $pairName fromMap(final Map.Entry<$keyObject, $valueObject> entry) {\n"
+                pairCode << "\t\treturn make(entry.getKey(), entry.getValue());\n"
+                pairCode << "\t}\n"
+                pairCode << "\n"
+                pairCode << "\tpublic static Map<$keyObject, $valueObject> toMap(final $pairName[] list) {\n"
+                pairCode << "\t\treturn Stream.of(list).collect(Collectors.toMap($pairName::getKey, $pairName::getValue));\n"
+                pairCode << "\t}\n"
+                pairCode << "\n"
+                pairCode << "\tprivate $keyPrimitive key;\n"
+                pairCode << "\tprivate $valuePrimitive value;\n"
+                pairCode << "\n"
+                pairCode << "\tprivate $pairName(final $keyPrimitive key, final $valuePrimitive value) {\n"
+                pairCode << "\t\tthis.key = key;\n"
+                pairCode << "\t\tthis.value = value;\n"
+                pairCode << "\t}\n"
+                pairCode << "\n"
+                pairCode << "\tpublic $pairName() {\n"
+                pairCode << "\t}\n"
+                pairCode << "\n"
+                pairCode << "\tpublic $keyPrimitive getKey() {\n"
+                pairCode << "\t\treturn key;\n"
+                pairCode << "\t}\n"
+                pairCode << "\n"
+                pairCode << "\tpublic $valuePrimitive getValue() {\n"
+                pairCode << "\t\treturn value;\n"
+                pairCode << "\t}\n"
+                pairCode << "\n"
+                pairCode << "\t@Override\n"
+                pairCode << "\tpublic boolean equals(final Object o) {\n"
+                pairCode << "\t\tif (this == o) return true;\n"
+                pairCode << "\t\tif (!(o instanceof ${pairName})) return false;\n"
+                pairCode << "\t\tfinal ${pairName} that = (${pairName}) o;\n"
+                pairCode << "\t\treturn Objects.equals(key, that.key) && Objects.equals(value, that.value);\n"
+                pairCode << "\t}\n"
+                pairCode << "\n"
+                pairCode << "\t@Override\n"
+                pairCode << "\tpublic int hashCode() {\n"
+                pairCode << "\t\treturn Objects.hash(key, value);\n"
+                pairCode << "\t}\n"
+                pairCode << "\n"
+                pairCode << "\t@Override\n"
+                pairCode << "\tpublic String toString() {\n"
+                pairCode << "\t\treturn \"${pairName}{key="
+                pairCode << quotes.getOrDefault(keyPrimitive, "")
+                pairCode << "\" + key + \""
+                pairCode << quotes.getOrDefault(keyPrimitive, "")
+                pairCode << ", value="
+                pairCode << quotes.getOrDefault(valuePrimitive, "")
+                pairCode << "\" + value + \""
+                pairCode << quotes.getOrDefault(valuePrimitive, "")
+                pairCode << "}\";\n"
+                pairCode << "\t}\n"
+
+
+                pairCode << "}\n"
+                new File(pairsSrcOutputDir, "${pairName}.java").write(pairCode.toString())
+                //
+                // generate TypeTypePairListDto
+                //
+                def pairListCode = new StringBuilder()
+                def pairListName = "${javaName(keyPrimitive)}${javaName(valuePrimitive)}PairListDto"
+                pairListCode << "package $pairsPackageName;\n"
+                pairListCode << "\n"
+                pairListCode << "import java.util.Arrays;\n"
+                pairListCode << "import java.util.Map;\n"
+                pairListCode << "\n"
+                pairListCode << "public final class $pairListName {\n"
+                pairListCode << "\tpublic static $pairListName fromMap(final Map<$keyObject, $valueObject> map) {\n"
+                pairListCode << "\t\treturn new $pairListName(map.entrySet().stream().map($pairName::fromMap).toArray($pairName[]::new));\n"
+                pairListCode << "\t}\n"
+                pairListCode << "\n"
+                pairListCode << "\tprivate $pairName[] list;\n"
+                pairListCode << "\n"
+                pairListCode << "\tprivate $pairListName(final $pairName[] list) {\n"
+                pairListCode << "\t\tthis.list = list;\n"
+                pairListCode << "\t}\n"
+                pairListCode << "\n"
+                pairListCode << "\tpublic $pairListName() {\n"
+                pairListCode << "\t}\n"
+                pairListCode << "\n"
+                pairListCode << "\tpublic $pairName[] getList() {\n"
+                pairListCode << "\t\treturn list;\n"
+                pairListCode << "\t}\n"
+                pairListCode << "\n"
+                pairListCode << "\tpublic Map<$keyObject, $valueObject> toMap() {\n"
+                pairListCode << "\t\treturn ${pairName}.toMap(list);\n"
+                pairListCode << "\t}\n"
+                pairListCode << "\n"
+                pairListCode << "\t@Override\n"
+                pairListCode << "\tpublic boolean equals(final Object o) {\n"
+                pairListCode << "\t\tif (this == o) return true;\n"
+                pairListCode << "\t\tif (!(o instanceof ${pairListName})) return false;\n"
+                pairListCode << "\t\tfinal ${pairListName} that = (${pairListName}) o;\n"
+                pairListCode << "\t\treturn Arrays.equals(list, that.list);\n"
+                pairListCode << "\t}\n"
+                pairListCode << "\n"
+                pairListCode << "\t@Override\n"
+                pairListCode << "\tpublic int hashCode() {\n"
+                pairListCode << "\t\treturn Arrays.hashCode(list);\n"
+                pairListCode << "\t}\n"
+                pairListCode << "\t@Override\n"
+                pairListCode << "\tpublic String toString() {\n"
+                pairListCode << "\t\treturn \"${pairListName}{list=\" + Arrays.toString(list) + '}';\n"
+                pairListCode << "\t}\n"
+                pairListCode << "}\n"
+                new File(pairsSrcOutputDir, "${pairListName}.java").write(pairListCode.toString())
+            }
+        }
+    }
+}
