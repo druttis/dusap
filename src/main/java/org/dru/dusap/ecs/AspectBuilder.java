@@ -26,4 +26,8 @@ public final class AspectBuilder {
         none = engine.bits(types);
         return this;
     }
+
+    public Aspect build() {
+        return new Aspect(all, one, none);
+    }
 }

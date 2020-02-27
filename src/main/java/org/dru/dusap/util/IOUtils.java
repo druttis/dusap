@@ -7,7 +7,7 @@ import java.io.OutputStream;
 
 public final class IOUtils {
     public static long copy(final InputStream in, final OutputStream out) throws IOException {
-        final byte[] buffer = new byte[1024];
+        final byte[] buffer = new byte[8192];
         long totalBytes = 0;
         int readBytes;
         while ((readBytes = in.read(buffer)) != -1) {

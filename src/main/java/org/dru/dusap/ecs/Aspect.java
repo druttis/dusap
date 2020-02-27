@@ -9,7 +9,7 @@ public final class Aspect {
     private final Bits one;
     private final Bits none;
 
-    private Aspect(final Bits all, final Bits one, final Bits none) {
+    Aspect(final Bits all, final Bits one, final Bits none) {
         this.all = all;
         this.one = one;
         this.none = none;

@@ -20,7 +20,7 @@ public final class DbJson<T> extends AbstractDbType<T> {
     private final JsonSerializer jsonSerializer;
 
     private DbJson(final Class<T> type, final JsonSerializer jsonSerializer) {
-        super(JDBCType.BLOB, true);
+        super(JDBCType.BLOB, false, true);
         this.type = Objects.requireNonNull(type, "type");
         this.jsonSerializer = Objects.requireNonNull(jsonSerializer, "jsonSerializer");
     }

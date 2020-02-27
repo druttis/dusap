@@ -67,6 +67,10 @@ public class Bag<T> {
         return false;
     }
 
+    public T removeFirst() {
+        return remove(0);
+    }
+
     public T removeLast() {
         return remove(size() - 1);
     }
@@ -75,7 +79,7 @@ public class Bag<T> {
         if (index < 0 || index >= size) {
             throw new ArrayIndexOutOfBoundsException(index);
         }
-        Objects.requireNonNull(item, "item2");
+        Objects.requireNonNull(item, "item");
         final T old = items[index];
         items[index] = item;
         return old;

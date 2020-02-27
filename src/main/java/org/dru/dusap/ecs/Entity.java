@@ -9,13 +9,15 @@ import org.dru.dusap.util.Bits;
 import java.util.Arrays;
 
 public final class Entity extends EventSourceSupport {
+    private final Engine engine;
     private final Bits componentBits;
     private Object[] components;
     private int engineIndex;
     private int[] memberIndexes;
 
-    public Entity(final EventBus eventBus) {
+    Entity(final Engine engine, final EventBus eventBus) {
         super(eventBus);
+        this.engine = engine;
         componentBits = new Bits();
         components = new Object[4];
     }
@@ -31,7 +33,11 @@ public final class Entity extends EventSourceSupport {
         return (index < components.length ? components[index] : null);
     }
 
-    public Object setComponent(final int index, final Object component) {
+    public void setComponent(final int index, final Object component) {
+        engine.invoke(() -> setComponentInternally(index, component));
+    }
+
+    private void setComponentInternally(final int index, final Object component) {
         if (index < 0) {
             throw new ArrayIndexOutOfBoundsException(index);
         }
@@ -56,7 +62,6 @@ public final class Entity extends EventSourceSupport {
         } else {
             old = null;
         }
-        return old;
     }
 
     int getEngineIndex() {
