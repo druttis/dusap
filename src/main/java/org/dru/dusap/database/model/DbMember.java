@@ -120,4 +120,12 @@ public final class DbMember<T> extends DbEntity<T> implements DbContainer {
         }
         support.populateMembers(getType());
     }
+
+    public String getFullyQualifiedName() {
+        return getTable().getName() + "." + getQualifiedName();
+    }
+
+    public String getFullyQualifiedDbName() {
+        return String.format("`%s`", getFullyQualifiedName());
+    }
 }

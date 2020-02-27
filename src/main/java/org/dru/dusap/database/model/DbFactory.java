@@ -4,4 +4,6 @@ public interface DbFactory {
     DbTable<?> newTable(String name);
 
     <T> DbTable<T> newTable(String name, Class<T> type);
+
+    DbSelect select();
 }

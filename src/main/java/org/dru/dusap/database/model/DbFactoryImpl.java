@@ -24,6 +24,11 @@ public final class DbFactoryImpl implements DbFactory, DbContext {
     }
 
     @Override
+    public DbSelect select() {
+        return new DbSelect();
+    }
+
+    @Override
     public <T> DbType<T> getDbType(final Class<T> type) {
         return dbTypes.getDbType(type);
     }

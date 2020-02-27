@@ -30,6 +30,10 @@ public abstract class DbEntity<T> {
         return (parent != null ? parent.getQualifiedName(name) : name);
     }
 
+    public final String getQualifiedDbName() {
+        return String.format("`%s`", getQualifiedDbName());
+    }
+
     public final Class<T> getType() {
         return type;
     }

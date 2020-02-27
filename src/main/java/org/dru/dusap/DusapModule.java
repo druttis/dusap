@@ -5,14 +5,13 @@ import org.dru.dusap.concurrent.ConcurrentModule;
 import org.dru.dusap.database.DatabaseModule;
 import org.dru.dusap.database.model.DbFactory;
 import org.dru.dusap.database.model.DbMember;
+import org.dru.dusap.database.model.DbSelect;
 import org.dru.dusap.database.model.DbTable;
 import org.dru.dusap.injection.*;
 import org.dru.dusap.json.JsonModule;
 import org.dru.dusap.rpc.RpcModule;
 import org.dru.dusap.rpc.json.JsonRpcModule;
 import org.dru.dusap.time.TimeModule;
-
-import java.awt.*;
 
 @DependsOn({
         ConcurrentModule.class,
@@ -34,10 +33,14 @@ public final class DusapModule extends Module {
     @Inject
     protected void test(final DbFactory factory) {
         final DbTable<LiveEvent> table = factory.newTable("LiveEvent", LiveEvent.class);
-        table.getMember("type").length(16);
-        table.getMember("data").length(1024);
+        final DbMember<?> type = table.getMember("type").length(16);
+        final DbMember<?> data = table.getMember("data").length(1024);
         final DbMember<LiveOpId> id = table.newMember("id", LiveOpId.class).length(32);
         System.out.println(table.getDDL());
+        final DbSelect select = factory.select()
+                .fields(type, data)
+                .where(id, "= ?");
+        System.out.println(select.getSQL());
     }
 
     public static void main(String[] args) {
