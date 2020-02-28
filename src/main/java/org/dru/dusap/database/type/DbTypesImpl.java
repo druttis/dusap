@@ -60,7 +60,7 @@ public final class DbTypesImpl implements DbTypes {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> DbType<T> getDefaultDbType(final Class<T> type) {
+    public <T> DbType<T> getDbType(final Class<T> type) {
         final List<DbType<?>> dbTypes = dbTypesByJavaType.get(type);
         if (dbTypes == null || dbTypes.isEmpty()) {
             return DbJson.instance(type, jsonSerializer);

@@ -10,16 +10,7 @@ public abstract class EntitySystem implements Updatable {
     }
 
     final void setEngine(final Engine engine) {
-        final Engine old = getEngine();
-        if (engine != old) {
-            this.engine = engine;
-            if (old != null) {
-                removedFromEngine(old);
-            }
-            if (engine != null) {
-                addedToEngine(engine);
-            }
-        }
+        this.engine = engine;
     }
 
     protected void addedToEngine(final Engine engine) {

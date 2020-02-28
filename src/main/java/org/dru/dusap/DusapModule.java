@@ -3,28 +3,15 @@ package org.dru.dusap;
 import org.apache.log4j.BasicConfigurator;
 import org.dru.dusap.concurrent.ConcurrentModule;
 import org.dru.dusap.database.DatabaseModule;
+import org.dru.dusap.database.model.DbFactory;
+import org.dru.dusap.database.model.DbMember;
+import org.dru.dusap.database.model.DbSelect;
 import org.dru.dusap.database.model.DbTable;
-import org.dru.dusap.database.model.DbTableBuilder;
-import org.dru.dusap.database.model.DbTableFactory;
-import org.dru.dusap.database.type.AbstractDbType;
-import org.dru.dusap.database.type.DbTypes;
-import org.dru.dusap.event.EventModule;
 import org.dru.dusap.injection.*;
 import org.dru.dusap.json.JsonModule;
-import org.dru.dusap.rpc.RpcClient;
-import org.dru.dusap.rpc.RpcClientManager;
 import org.dru.dusap.rpc.RpcModule;
-import org.dru.dusap.rpc.RpcToken;
-import org.dru.dusap.rpc.event.RpcErrorEvent;
-import org.dru.dusap.rpc.event.RpcResultEvent;
 import org.dru.dusap.rpc.json.JsonRpcModule;
 import org.dru.dusap.time.TimeModule;
-
-import java.sql.JDBCType;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.Instant;
 
 @DependsOn({
         ConcurrentModule.class,
@@ -44,18 +31,16 @@ public final class DusapModule extends Module {
     }
 
     @Inject
-    private void test(final DbTypes dbTypes, final DbTableFactory dbTableFactory) throws SQLException {
-        dbTypes.registerDbType(Instant.class, new DbInstant());
-        final DbTableBuilder<LiveOpEvent> builder = dbTableFactory.createBuilder("LiveOpEvent", LiveOpEvent.class);
-        builder.setPrimaryKey("key");
-        builder.flatten("key", false);
-        builder.setLength("key_type", 32);
-        builder.flatten("config", false);
-        builder.setLength("config_type", 32);
-        builder.setLength("config_data", 32768);
-        DbTable<LiveOpEvent> liveOpEventTable = builder.build();
-        System.out.println(liveOpEventTable.getDDL());
-//        System.out.println(liveOpEventTable.preparedSelect(null, "WHERE :key_type"));
+    protected void test(final DbFactory factory) {
+        final DbTable<LiveEvent> table = factory.newTable("LiveEvent", LiveEvent.class);
+        final DbMember<?> type = table.getMember("type").length(16);
+        final DbMember<?> data = table.getMember("data").length(1024);
+        final DbMember<LiveOpId> id = table.newMember("id", LiveOpId.class).length(32);
+        System.out.println(table.getDDL());
+        final DbSelect select = factory.select()
+                .fields(type, data)
+                .where(id, "= ?");
+        System.out.println(select.getSQL());
     }
 
     public static void main(String[] args) {
@@ -63,36 +48,45 @@ public final class DusapModule extends Module {
         Injector injector = Injection.getInjector(DusapModule.class);
     }
 
-    public static class LiveOpKey {
+    private static class LiveEvent {
         private String type;
-        private long id;
-    }
+        private String data;
 
-    public static class LiveOpConfig {
-        private String type;
-        private Object data;
-    }
-
-    public static class LiveOpEvent {
-        private LiveOpKey key;
-        private LiveOpConfig config;
-        private Instant starts;
-    }
-
-    public static class DbInstant extends AbstractDbType<Instant> {
-        public DbInstant() {
-            super(JDBCType.BIGINT);
+        public LiveEvent(final String type, final String data) {
+            this.type = type;
+            this.data = data;
         }
 
-        @Override
-        protected Instant getResultImpl(final ResultSet rset, final int index) throws SQLException {
-            return Instant.ofEpochMilli(rset.getLong(index));
+        public LiveEvent() {
         }
 
-        @Override
-        protected void setParameterImpl(final PreparedStatement stmt, final int index, final Instant value)
-                throws SQLException {
-            stmt.setLong(index, value.toEpochMilli());
+        public String getType() {
+            return type;
+        }
+
+        public String getData() {
+            return data;
+        }
+    }
+
+    private static class LiveOpId {
+        private String type;
+        private long number;
+
+        public LiveOpId(final String type, final long number) {
+            this.type = type;
+            this.number = number;
+        }
+
+        public LiveOpId() {
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public long getNumber() {
+            return number;
         }
     }
 }

@@ -14,7 +14,7 @@ public final class DbByteArray extends AbstractDbType<byte[]> {
     public static final DbByteArray INSTANCE = new DbByteArray();
 
     private DbByteArray() {
-        super(JDBCType.BLOB, true);
+        super(JDBCType.BLOB, false, true);
     }
 
     @Override

@@ -3,13 +3,13 @@ package org.dru.dusap.database.model;
 import java.util.List;
 
 public interface DbContainer {
-    List<DbMember> getMembers();
+    boolean hasMembers();
 
-    List<DbColumn> getColumns();
+    List<DbMember<?>> getMembers();
 
-    void addMember(final DbMember member);
+    <F> DbMember<F> getMember(String name);
 
-    void replaceColumnWithComplex(final DbColumn column, final DbComplex complex);
+    <F> DbMember<F> newMember(String name, Class<F> type);
 
-    String getQName(String childName);
+    List<DbMember<?>> getColumns();
 }

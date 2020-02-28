@@ -9,7 +9,7 @@ public final class DbString extends AbstractDbType<String> {
     public static final DbString INSTANCE = new DbString();
 
     private DbString() {
-        super(JDBCType.VARCHAR, true);
+        super(JDBCType.VARCHAR, true, true);
     }
 
     @Override

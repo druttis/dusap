@@ -1,43 +1,131 @@
 package org.dru.dusap.database.model;
 
+import org.dru.dusap.database.type.DbType;
+
 import java.lang.reflect.Field;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.List;
+import java.util.Objects;
 
-abstract class DbMember {
+public final class DbMember<T> extends DbEntity<T> implements DbContainer {
+    private final DbType<T> dbType;
     private final Field field;
-    private DbContainer parent;
+    private final DbSupport support;
+    private int length;
+    private boolean notNull;
+    private boolean primaryKey;
 
-    DbMember(final Field field) {
+    DbMember(final DbEntity<?> parent, final String name, final Class<T> type, final Field field) {
+        super(parent, name, type);
+        Objects.requireNonNull(parent, "parent");
+        dbType = getContext().getDbType(type);
         this.field = field;
+        support = new DbSupport(this);
     }
 
-    public final String getName() {
-        return getField().getName();
+    @Override
+    public DbContext getContext() {
+        return getParent().getContext();
     }
 
-    public final String getQName() {
-        final DbContainer parent = getParent();
-        return (parent != null ? parent.getQName(getName()) : getName());
+    @Override
+    public String getQualifiedName(final String name) {
+        Objects.requireNonNull(name, "name");
+        return String.format("%s_%s", getQualifiedName(), name);
     }
 
-    public final String getDbName() {
-        return String.format("`%s`", getQName());
+    @Override
+    public String getDDL() {
+        final StringBuilder sb = new StringBuilder(getDbName());
+        sb.append(' ');
+        sb.append(dbType.getDDL(length));
+        if (notNull && !primaryKey) {
+            sb.append(" NOT NULL");
+        }
+        return sb.toString();
     }
 
-    public final DbContainer getParent() {
-        return parent;
+    @Override
+    public DbTable<?> getTable() {
+        return getParent().getTable();
     }
 
-    final void setParent(final DbContainer parent) {
-        this.parent = parent;
+    @Override
+    public boolean hasMembers() {
+        return support.hasMembers();
     }
 
-    final Field getField() {
+    @Override
+    public List<DbMember<?>> getMembers() {
+        return support.getMembers();
+    }
+
+    @Override
+    public <F> DbMember<F> getMember(final String name) {
+        return support.getMember(name);
+    }
+
+    @Override
+    public <F> DbMember<F> newMember(final String name, final Class<F> type) {
+        return support.newMember(name, type);
+    }
+
+    @Override
+    public List<DbMember<?>> getColumns() {
+        return support.getColumns();
+    }
+
+    public Field getField() {
         return field;
     }
 
-    abstract int getColumnCount();
+    public int getLength() {
+        return length;
+    }
 
-    abstract void fetchResult(final Object object, final ResultSet rset, final int index) throws SQLException;
+    public DbMember<T> length(final int length) {
+        this.length = length;
+        return this;
+    }
+
+    public boolean isNotNull() {
+        return notNull;
+    }
+
+    public DbMember<T> notNull() {
+        this.notNull = true;
+        return this;
+    }
+
+    public boolean isPrimaryKey() {
+        return primaryKey;
+    }
+
+    public DbMember<T> primaryKey() {
+        if (!primaryKey) {
+            primaryKey = true;
+            if (!dbType.isPrimitive()) {
+                support.populateMembers(getType());
+                getMembers().forEach(DbMember::primaryKey);
+            }
+        }
+        return this;
+    }
+
+    public void explode() {
+        if (hasMembers()) {
+            throw new IllegalStateException("already exploded");
+        }
+        if (dbType.isPrimitive()) {
+            throw new IllegalStateException("can not explode primitives");
+        }
+        support.populateMembers(getType());
+    }
+
+    public String getFullyQualifiedName() {
+        return getTable().getName() + "." + getQualifiedName();
+    }
+
+    public String getFullyQualifiedDbName() {
+        return String.format("`%s`", getFullyQualifiedName());
+    }
 }
