@@ -1,20 +1,29 @@
 package org.dru.dusap.database.model;
 
+import org.dru.dusap.reflection.ReflectionUtils;
+
+import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public final class DbTable<T> extends DbEntity<T> implements DbContainer {
+public final class DbTable<T> extends DbEntity<T> {
     private final DbContext context;
-    private final DbSupport support;
+    private final Constructor<T> constructor;
 
-    public DbTable(final DbContext context, final String name, final Class<T> type) {
-        super(null, name, type);
+    DbTable(final DbContext context, final String name, final Class<T> type) {
+        super(name, type);
         Objects.requireNonNull(context, "context");
         this.context = context;
-        support = new DbSupport(this);
         if (type != null) {
-            support.populateMembers(type);
+            constructor = ReflectionUtils.getDefaultConstructor(type);
+            explodeInternal();
+            if (!hasColumns()) {
+                throw new IllegalStateException("type has no serializable fields: type=" + type.getName());
+            }
+        } else {
+            constructor = null;
         }
     }
 
@@ -24,64 +33,45 @@ public final class DbTable<T> extends DbEntity<T> implements DbContainer {
     }
 
     @Override
-    public String getQualifiedName(final String name) {
-        Objects.requireNonNull(name, "name");
-        return name;
+    public DbEntity<?> getParent() {
+        return null;
     }
 
     @Override
-    public String getDDL() {
-        final StringBuilder sb = new StringBuilder("CREATE TABLE IF NOT EXIST ");
-        sb.append(getDbName());
-        sb.append(" (\n");
-        sb.append(getColumns().stream()
-                .map(DbMember::getDDL)
-                .collect(Collectors.joining(",\n")));
-        final List<DbMember<?>> primaryKeyColumns = getPrimaryKeyColumns();
-        if (!primaryKeyColumns.isEmpty()) {
-            sb.append(",\nPRIMARY KEY (");
-            sb.append(primaryKeyColumns.stream()
-                    .map(DbMember::getDbName)
-                    .collect(Collectors.joining(",")));
-            sb.append(')');
-        }
-        sb.append("\n) ENGINE=InnoDb CHARACTER SET=utf8mb4");
-        return sb.toString();
-    }
-
-    @Override
-    public DbTable<?> getTable() {
+    public DbEntity<?> getRoot() {
         return this;
     }
 
     @Override
-    public boolean hasMembers() {
-        return support.hasMembers();
+    public String getQualifiedDbName() {
+        return getDbName();
     }
 
     @Override
-    public List<DbMember<?>> getMembers() {
-        return support.getMembers();
+    public <R, D> R accept(final DbVisitor<R, D> visitor, final D data) {
+        return visitor.visitTable(this, data);
     }
 
     @Override
-    public <F> DbMember<F> getMember(final String name) {
-        return support.getMember(name);
+    protected String getColumnName(final String name) {
+        return name;
     }
 
-    @Override
-    public <F> DbMember<F> newMember(final String name, final Class<F> type) {
-        return support.newMember(name, type);
+    public DbTable<T> defaultUsing(final Supplier<T> supplier) {
+        setDefaultUsing(supplier);
+        return this;
     }
 
-    @Override
-    public List<DbMember<?>> getColumns() {
-        return support.getColumns();
+    public DbTable<T> defaultWith(final T value) {
+        setDefaultWith(value);
+        return this;
     }
 
-    public List<DbMember<?>> getPrimaryKeyColumns() {
-        return getColumns().stream()
-                .filter(DbMember::isPrimaryKey)
-                .collect(Collectors.toList());
+    public final Constructor<T> getConstructor() {
+        return constructor;
+    }
+
+    public List<DbColumn<?>> getDbColumns() {
+        return getColumns().stream().flatMap(column -> column.getDbColumns().stream()).collect(Collectors.toList());
     }
 }

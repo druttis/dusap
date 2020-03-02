@@ -13,23 +13,18 @@ public final class DbFactoryImpl implements DbFactory, DbContext {
     }
 
     @Override
-    public DbTable<?> newTable(final String name) {
-        return new DbTable<>(this, name, null);
-    }
-
-    @Override
     public <T> DbTable<T> newTable(final String name, final Class<T> type) {
         Objects.requireNonNull(type, "type");
         return new DbTable<>(this, name, type);
     }
 
     @Override
-    public DbSelect select() {
-        return new DbSelect();
+    public DbTable<?> newTable(final String name) {
+        return new DbTable<>(this, name, null);
     }
 
     @Override
-    public <T> DbType<T> getDbType(final Class<T> type) {
+    public <T> DbType<T> getType(final Class<T> type) {
         return dbTypes.getDbType(type);
     }
 }

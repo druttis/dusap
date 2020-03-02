@@ -59,7 +59,7 @@ public abstract class AbstractDbType<T> implements DbType<T> {
     }
 
     @Override
-    public final void prepare(final PreparedStatement stmt, final int index, final T value)
+    public final void setParameter(final PreparedStatement stmt, final int index, final T value)
             throws SQLException {
         if (value != null) {
             setParameterImpl(stmt, index, value);

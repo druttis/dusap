@@ -17,7 +17,7 @@ public interface DbType<T> {
 
     T fetch(ResultSet rset, int index) throws SQLException;
 
-    void prepare(PreparedStatement stmt, int index, T value) throws SQLException;
+    void setParameter(PreparedStatement stmt, int index, T value) throws SQLException;
 
     String getDDL(int length);
 }
