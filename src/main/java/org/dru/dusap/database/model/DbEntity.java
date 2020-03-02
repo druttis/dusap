@@ -93,7 +93,7 @@ public abstract class DbEntity<T> {
         return null;
     }
 
-    protected final void addColumn(final DbColumn<?> column) {
+    protected final void addColumnInternal(final DbColumn<?> column) {
         Objects.requireNonNull(column, "column");
         final String name = column.getName();
         final DbColumn<?> existing = getColumnOrNull(name);
@@ -110,7 +110,7 @@ public abstract class DbEntity<T> {
         ReflectionUtils.getSerializableFields(getType()).forEach(field -> {
             final String name = getColumnName(field.getName());
             final Class<?> type = field.getType();
-            addColumn(new DbColumn<>(this, name, type, field));
+            addColumnInternal(new DbColumn<>(this, name, type, field));
         });
     }
 
@@ -119,8 +119,6 @@ public abstract class DbEntity<T> {
     public abstract DbEntity<?> getParent();
 
     public abstract DbEntity<?> getRoot();
-
-    public abstract String getQualifiedDbName();
 
     public abstract <R, D> R accept(DbVisitor<R, D> visitor, D data);
 

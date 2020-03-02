@@ -19,7 +19,7 @@ public enum DDLVisitor implements DbVisitor<String, Void> {
 
     @Override
     public <T> String visitTable(final DbTable<T> table, final Void data) {
-        final StringBuilder sb = new StringBuilder("CREATE TABLE IF NOT EXIST ");
+        final StringBuilder sb = new StringBuilder("CREATE TABLE IF NOT EXISTS ");
         sb.append(table.getDbName());
         sb.append(" (\n");
         sb.append(table.getDbColumns().stream()

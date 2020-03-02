@@ -43,11 +43,6 @@ public final class DbTable<T> extends DbEntity<T> {
     }
 
     @Override
-    public String getQualifiedDbName() {
-        return getDbName();
-    }
-
-    @Override
     public <R, D> R accept(final DbVisitor<R, D> visitor, final D data) {
         return visitor.visitTable(this, data);
     }
@@ -65,6 +60,12 @@ public final class DbTable<T> extends DbEntity<T> {
     public DbTable<T> defaultWith(final T value) {
         setDefaultWith(value);
         return this;
+    }
+
+    public <C> DbColumn<C> newColumn(final String name, final Class<C> type) {
+        final DbColumn<C> column = new DbColumn<>(this, name, type, null);
+        addColumnInternal(column);
+        return column;
     }
 
     public final Constructor<T> getConstructor() {

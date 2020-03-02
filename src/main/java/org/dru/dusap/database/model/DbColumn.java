@@ -3,6 +3,9 @@ package org.dru.dusap.database.model;
 import org.dru.dusap.database.type.DbType;
 
 import java.lang.reflect.Field;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -39,9 +42,8 @@ public final class DbColumn<T> extends DbEntity<T> {
         return getParent().getRoot();
     }
 
-    @Override
-    public String getQualifiedDbName() {
-        return String.format("`%s.%s`", getRoot().getName(), getName());
+    public DbTable<?> getTable() {
+        return (DbTable<?>) getRoot();
     }
 
     @Override
@@ -84,7 +86,7 @@ public final class DbColumn<T> extends DbEntity<T> {
         return primaryKey;
     }
 
-    public DbColumn<T> setPrimaryKey() {
+    public DbColumn<T> primaryKey() {
         primaryKey = true;
         return this;
     }
@@ -111,5 +113,13 @@ public final class DbColumn<T> extends DbEntity<T> {
         } else {
             return getColumns().stream().flatMap(column -> column.getDbColumns().stream()).collect(Collectors.toList());
         }
+    }
+
+    public T getResult(final ResultSet rset, final int index) throws SQLException {
+        return getDbType().fetch(rset, index);
+    }
+
+    public void setParameter(final PreparedStatement stmt, final int index, final T value) throws SQLException {
+        getDbType().setParameter(stmt, index, value);
     }
 }
