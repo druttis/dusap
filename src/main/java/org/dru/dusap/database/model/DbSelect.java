@@ -2,59 +2,48 @@ package org.dru.dusap.database.model;
 
 import org.dru.dusap.util.CollectionUtils;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public final class DbSelect extends DbConditional {
-    public static Builder column(DbColumn<?> column) {
-        final Builder builder = new Builder();
-        return builder.column(column);
+    public static Builder field(final DbMember<?> field) {
+        return new Builder().field(field);
     }
 
-    public static Builder column(Collection<DbColumn<?>> columns) {
-        final Builder builder = new Builder();
-        return builder.columns(columns);
+    public static Builder fields(final Collection<DbMember<?>> fields) {
+        return new Builder().fields(fields);
     }
 
-    public static Builder column(final DbColumn<?> first, final DbColumn<?>... rest) {
-        final Builder builder = new Builder();
-        return builder.columns(first, rest);
+    public static Builder fields(final DbMember<?> first, final DbMember<?>... rest) {
+        return new Builder().fields(first, rest);
     }
 
-    public static Builder columns(final DbTable<?> table) {
-        final Builder builder = new Builder();
-        return builder.columns(table.getDbColumns());
+    public static Builder fields(final DbTable<?> table) {
+        return new Builder().fields(table.getMembers());
     }
 
     public static Builder extend(final DbSelect select) {
         final Builder builder = new Builder();
-        builder.columns.addAll(select.getColumns());
-        builder.tables.addAll(select.getTables());
-        builder.conditions.addAll(select.getConditions());
+        select.getFields().forEach(builder::addField);
+        select.getConditions().forEach(condition -> builder.addCondition(condition.getField(), condition.getImage()));
         builder.limit = select.getLimit();
         builder.offset = select.getOffset();
         builder.forUpdate = select.isForUpdate();
         return builder;
     }
 
-    private final List<DbTable<?>> tables;
     private final Integer limit;
     private final Integer offset;
     private final boolean forUpdate;
 
-    public DbSelect(final List<DbColumn<?>> columns, final List<DbCondition<?>> conditions,
-                    final Set<DbTable<?>> tables, final Integer limit, final Integer offset, final boolean forUpdate) {
-        super(columns, conditions);
-        this.tables = Collections.unmodifiableList(new ArrayList<>(tables));
+    private DbSelect(final List<DbMember<?>> fields, final DbTable<?> table, final List<DbCondition<?>> conditions,
+                     final Integer limit, final Integer offset, final boolean forUpdate) {
+        super(fields, table, conditions);
         this.limit = limit;
         this.offset = offset;
         this.forUpdate = forUpdate;
-    }
-
-    public List<DbTable<?>> getTables() {
-        return tables;
     }
 
     public Integer getLimit() {
@@ -73,9 +62,12 @@ public final class DbSelect extends DbConditional {
     protected String createSQL() {
         final StringBuilder sb = new StringBuilder();
         sb.append("SELECT ");
-        sb.append(getColumns().stream().map(DbColumn::getDbName).collect(Collectors.joining(",")));
+        sb.append(getFields().stream()
+                .flatMap(column -> column.getColumns().stream())
+                .map(DbMember::getDbName)
+                .collect(Collectors.joining(",")));
         sb.append(" FROM ");
-        sb.append(tables.stream().map(DbTable::getDbName).collect(Collectors.joining(",")));
+        sb.append(getTable().getDbName());
         appendWhereSQL(sb);
         if (limit != null) {
             sb.append(" LIMIT ");
@@ -88,47 +80,40 @@ public final class DbSelect extends DbConditional {
         if (forUpdate) {
             sb.append(" FOR UPDATE");
         }
+        System.out.println(sb.toString());
         return sb.toString();
     }
 
-    public <T> void setCondition(final PreparedStatement stmt, final DbColumn<T> column, final T value)
-            throws SQLException {
-        setCondition(stmt, column, 0, value);
+    @Override
+    protected int getFirstConditionIndex() {
+        return 1;
     }
 
-    public static class Builder {
-        private final List<DbColumn<?>> columns;
-        private final Set<DbTable<?>> tables;
-        private final List<DbCondition<?>> conditions;
+    public static class Builder extends DbConditional.Builder {
         private Integer limit;
         private Integer offset;
         private boolean forUpdate;
 
         private Builder() {
-            columns = new ArrayList<>();
-            tables = new LinkedHashSet<>();
-            conditions = new ArrayList<>();
         }
 
-        public Builder column(DbColumn<?> column) {
-            Objects.requireNonNull(column, "column");
-            columns.add(column);
-            addColumnTable(column);
+        public Builder field(DbMember<?> field) {
+            addField(field);
             return this;
         }
 
-        public Builder columns(final Collection<DbColumn<?>> columns) {
-            Objects.requireNonNull(columns, "columns");
-            columns.forEach(this::column);
+        public Builder fields(final Collection<DbMember<?>> fields) {
+            Objects.requireNonNull(fields, "fields");
+            fields.forEach(this::field);
             return this;
         }
 
-        public Builder columns(final DbColumn<?> first, final DbColumn<?>... rest) {
-            return columns(CollectionUtils.asList(first, rest));
+        public Builder fields(final DbMember<?> first, final DbMember<?>... rest) {
+            return fields(CollectionUtils.asList(first, rest));
         }
 
-        public <T> Builder where(final DbColumn<T> column, final String image) {
-            conditions.add(new DbCondition<>(column, image));
+        public <T> Builder where(final DbMember<T> field, final String image) {
+            addCondition(field, image);
             return this;
         }
 
@@ -148,11 +133,7 @@ public final class DbSelect extends DbConditional {
         }
 
         public DbSelect build() {
-            return new DbSelect(columns, conditions, tables, limit, offset, forUpdate);
-        }
-
-        private void addColumnTable(final DbColumn<?> column) {
-            tables.add(column.getTable());
+            return new DbSelect(getFields(), getTable(), getConditions(), limit, offset, forUpdate);
         }
     }
 }

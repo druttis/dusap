@@ -13,9 +13,9 @@ public interface DbType<T> {
 
     boolean isVariableLength();
 
-    T fetchOrDefault(ResultSet rset, int index, Supplier<T> supplier) throws SQLException;
+    T getResult(ResultSet rset, int index, Supplier<T> supplier) throws SQLException;
 
-    T fetch(ResultSet rset, int index) throws SQLException;
+    T getResult(ResultSet rset, int index) throws SQLException;
 
     void setParameter(PreparedStatement stmt, int index, T value) throws SQLException;
 

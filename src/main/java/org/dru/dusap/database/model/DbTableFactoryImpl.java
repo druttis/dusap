@@ -5,10 +5,10 @@ import org.dru.dusap.database.type.DbTypes;
 
 import java.util.Objects;
 
-public final class DbFactoryImpl implements DbFactory, DbContext {
+public final class DbTableFactoryImpl implements DbTableFactory, DbContext {
     private final DbTypes dbTypes;
 
-    public DbFactoryImpl(final DbTypes dbTypes) {
+    public DbTableFactoryImpl(final DbTypes dbTypes) {
         this.dbTypes = dbTypes;
     }
 
@@ -24,7 +24,7 @@ public final class DbFactoryImpl implements DbFactory, DbContext {
     }
 
     @Override
-    public <T> DbType<T> getType(final Class<T> type) {
+    public <T> DbType<T> getDbType(final Class<T> type) {
         return dbTypes.getDbType(type);
     }
 }

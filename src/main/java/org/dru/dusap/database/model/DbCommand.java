@@ -7,27 +7,45 @@ import java.sql.SQLException;
 import java.util.*;
 
 public abstract class DbCommand {
-    private final List<DbColumn<?>> columns;
-    private final Map<DbColumn<?>, Integer> columnIndexes;
+    private final List<DbMember<?>> fields;
+    private final DbTable<?> table;
+    private final Map<DbMember<?>, Integer> indexByMember;
+    private final int nextIndex;
     protected String sql;
 
-    public DbCommand(final List<DbColumn<?>> columns) {
-        Objects.requireNonNull(columns, "columns");
-        this.columns = Collections.unmodifiableList(new ArrayList<>(columns));
-        columnIndexes = new HashMap<>();
-        columns.forEach(c -> columnIndexes.put(c, columns.indexOf(c)));
+    protected DbCommand(final List<DbMember<?>> fields, final DbTable<?> table) {
+        Objects.requireNonNull(fields, "columns");
+        Objects.requireNonNull(table, "table");
+        this.fields = Collections.unmodifiableList(new ArrayList<>(fields));
+        this.table = table;
+        indexByMember = new HashMap<>();
+        int index = 1;
+        for (final DbMember<?> field : fields) {
+            indexByMember.put(field, index);
+            index += field.getColumnCount();
+        }
+        nextIndex = index;
     }
 
-    public final List<DbColumn<?>> getColumns() {
-        return columns;
+    public final List<DbMember<?>> getFields() {
+        return Collections.unmodifiableList(fields);
     }
 
-    public final int getColumnIndex(final DbColumn<?> column) {
-        final int index = columnIndexes.getOrDefault(column, -1);
+    public final DbTable<?> getTable() {
+        return table;
+    }
+
+    public final int getFieldIndex(final DbMember<?> field) {
+        Objects.requireNonNull(field, "field");
+        final int index = indexByMember.getOrDefault(field, -1);
         if (index == -1) {
-            throw new IllegalArgumentException("no such column: name=" + column);
+            throw new IllegalArgumentException("no such field: name=" + field);
         }
         return index;
+    }
+
+    public final int getNextIndex() {
+        return nextIndex;
     }
 
     public final String getSQL() {
@@ -41,14 +59,51 @@ public abstract class DbCommand {
         return conn.prepareStatement(getSQL());
     }
 
-    public final <T> T getColumn(final ResultSet rset, final DbColumn<T> column) throws SQLException {
-        return column.getResult(rset, columnIndexes.get(column) + 1);
+    public final <T> T getField(final ResultSet rset, final DbMember<T> field) throws SQLException {
+        return field.getResult(rset, getFieldIndex(field));
     }
 
-    public final <T> void setColumn(final PreparedStatement stmt, final DbColumn<T> column, final T value)
+    public final <T> void setField(final PreparedStatement stmt, final DbMember<T> field, final T value)
             throws SQLException {
-        column.setParameter(stmt, columnIndexes.get(column) + 1, value);
+        field.setParameter(stmt, getFieldIndex(field), value);
     }
 
     protected abstract String createSQL();
+
+    public static abstract class Builder {
+        private final List<DbMember<?>> fields;
+        private DbTable<?> table;
+
+        protected Builder() {
+            fields = new ArrayList<>();
+        }
+
+        protected final List<DbMember<?>> getFields() {
+            return Collections.unmodifiableList(fields);
+        }
+
+        protected final DbTable<?> getTable() {
+            return table;
+        }
+
+        protected final void addField(final DbMember<?> field) {
+            Objects.requireNonNull(field, "field");
+            for (final DbMember<?> f : fields) {
+                if (f.getName().equals(field.getName())) {
+                    throw new IllegalArgumentException("duplicate field: name=" + field.getName());
+                }
+            }
+            fields.add(field);
+            addFieldTable(field);
+        }
+
+        protected final void addFieldTable(final DbMember<?> field) {
+            Objects.requireNonNull(field, "field");
+            if (table == null) {
+                table = field.getTable();
+            } else if (!table.equals(field.getTable())) {
+                throw new IllegalArgumentException("multiple tables not supported");
+            }
+        }
+    }
 }

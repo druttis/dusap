@@ -20,7 +20,8 @@ public final class DbTableManagerImpl implements DbTableManager {
         if (visited.add(new Entry(executor, shard))) {
             try {
                 executor.update(shard, conn -> {
-                    final String ddl = table.accept(DDLVisitor.INSTANCE, null);
+                    final String ddl = table.getDDL();
+                    System.out.println(ddl);
                     try (final PreparedStatement stmt = conn.prepareStatement(ddl)) {
                         stmt.execute();
                     }

@@ -1,18 +1,18 @@
 package org.dru.dusap.database.model;
 
 public final class DbCondition<T> {
-    private final DbColumn<T> column;
+    private final DbMember<T> field;
     private final String image;
     private final int parameterCount;
 
-    public DbCondition(final DbColumn<T> column, final String image) {
-        this.column = column;
+    public DbCondition(final DbMember<T> field, final String image) {
+        this.field = field;
         this.image = image;
         parameterCount = computeParameterCount();
     }
 
-    public DbColumn<T> getColumn() {
-        return column;
+    public DbMember<T> getField() {
+        return field;
     }
 
     public String getImage() {
@@ -24,7 +24,7 @@ public final class DbCondition<T> {
     }
 
     public String getSQL() {
-        return String.format("%s%s", getColumn().getDbName(), getImage());
+        return String.format("%s%s", getField().getDbName(), getImage());
     }
 
     private int computeParameterCount() {

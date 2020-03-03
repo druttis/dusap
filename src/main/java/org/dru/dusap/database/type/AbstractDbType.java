@@ -45,7 +45,7 @@ public abstract class AbstractDbType<T> implements DbType<T> {
     }
 
     @Override
-    public final T fetchOrDefault(final ResultSet rset, final int index, final Supplier<T> supplier)
+    public final T getResult(final ResultSet rset, final int index, final Supplier<T> supplier)
             throws SQLException {
         Objects.requireNonNull(rset, "rset");
         Objects.requireNonNull(supplier, "supplier");
@@ -54,8 +54,8 @@ public abstract class AbstractDbType<T> implements DbType<T> {
     }
 
     @Override
-    public final T fetch(final ResultSet rset, final int index) throws SQLException {
-        return fetchOrDefault(rset, index, getNullSupplier());
+    public final T getResult(final ResultSet rset, final int index) throws SQLException {
+        return getResult(rset, index, getNullSupplier());
     }
 
     @Override

@@ -2,32 +2,26 @@ package org.dru.dusap.database.model;
 
 import org.dru.dusap.util.CollectionUtils;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public final class DbInsert extends DbCommand {
-    public static Builder column(final DbColumn<?> column) {
-        return new Builder().column(column);
+    public static Builder field(final DbMember<?> field) {
+        return new Builder().field(field);
     }
 
-    public static Builder columns(final Collection<DbColumn<?>> columns) {
-        return new Builder().columns(columns);
+    public static Builder fields(final Collection<DbMember<?>> fields) {
+        return new Builder().fields(fields);
     }
 
-    public static Builder columns(final DbColumn<?> first, final DbColumn<?>... rest) {
-        return new Builder().columns(first, rest);
+    public static Builder fields(final DbMember<?> first, final DbMember<?>... rest) {
+        return new Builder().fields(first, rest);
     }
 
-    private final DbTable<?> table;
-
-    private DbInsert(final List<DbColumn<?>> columns, final DbTable<?> table) {
-        super(columns);
-        Objects.requireNonNull(table, "table");
-        this.table = table;
-    }
-
-    public DbTable<?> getTable() {
-        return table;
+    private DbInsert(final List<DbMember<?>> fields, final DbTable<?> table) {
+        super(fields, table);
     }
 
     @Override
@@ -36,49 +30,43 @@ public final class DbInsert extends DbCommand {
         sb.append("INSERT INTO ");
         sb.append(getTable().getDbName());
         sb.append(" (");
-        sb.append(getColumns().stream().map(DbColumn::getDbName).collect(Collectors.joining(",")));
+        sb.append(getFields().stream()
+                .flatMap(field -> field.getColumns().stream())
+                .map(DbMember::getDbName)
+                .collect(Collectors.joining(","))
+        );
         sb.append(") VALUES (");
-        sb.append(getColumns().stream().map($ -> "?").collect(Collectors.joining(",")));
+        sb.append(getFields().stream()
+                .flatMap(field -> field.getColumns().stream())
+                .map($ -> "?")
+                .collect(Collectors.joining(","))
+        );
         sb.append(")");
+        System.out.println(sb.toString());
         return sb.toString();
     }
 
-    public static final class Builder {
-        private final List<DbColumn<?>> columns;
-        private final Set<DbTable<?>> tables;
-
-        public Builder() {
-            columns = new ArrayList<>();
-            tables = new HashSet<>();
+    public static final class Builder extends DbCommand.Builder {
+        private Builder() {
         }
 
-        public Builder column(DbColumn<?> column) {
-            Objects.requireNonNull(column, "column");
-            columns.add(column);
-            addColumnTable(column);
+        public Builder field(DbMember<?> field) {
+            addField(field);
             return this;
         }
 
-        public Builder columns(final Collection<DbColumn<?>> columns) {
-            Objects.requireNonNull(columns, "columns");
-            columns.forEach(this::column);
+        public Builder fields(final Collection<DbMember<?>> fields) {
+            Objects.requireNonNull(fields, "fields");
+            fields.forEach(this::field);
             return this;
         }
 
-        public Builder columns(final DbColumn<?> first, final DbColumn<?>... rest) {
-            return columns(CollectionUtils.asList(first, rest));
+        public Builder fields(final DbMember<?> first, final DbMember<?>... rest) {
+            return fields(CollectionUtils.asList(first, rest));
         }
 
         public DbInsert build() {
-            return new DbInsert(columns, tables.iterator().next());
+            return new DbInsert(getFields(), getTable());
         }
-
-        private void addColumnTable(final DbColumn<?> column) {
-            tables.add(column.getTable());
-            if (tables.size() > 1) {
-                throw new IllegalArgumentException("multiple tables not supported");
-            }
-        }
-
     }
 }

@@ -7,31 +7,38 @@ import java.util.stream.Collectors;
 
 public abstract class DbConditional extends DbCommand {
     private final List<DbCondition<?>> conditions;
-    private final Map<DbColumn<?>, Integer> conditionIndexes;
+    private final Map<DbMember<?>, Integer> indexByCondition;
 
-    public DbConditional(final List<DbColumn<?>> columns, final List<DbCondition<?>> conditions) {
-        super(columns);
+    protected DbConditional(final List<DbMember<?>> fields, final DbTable<?> table,
+                            final List<DbCondition<?>> conditions) {
+        super(fields, table);
         Objects.requireNonNull(conditions, "conditions");
         this.conditions = Collections.unmodifiableList(new ArrayList<>(conditions));
-        conditionIndexes = new HashMap<>();
-        conditions.forEach(c -> conditionIndexes.put(c.getColumn(), conditions.indexOf(c)));
+        indexByCondition = new HashMap<>();
+        int index = getFirstConditionIndex();
+        for (final DbCondition<?> condition : conditions) {
+            final DbMember<?> field = condition.getField();
+            indexByCondition.put(field, index);
+            index += field.getColumnCount();
+        }
     }
 
     public final List<DbCondition<?>> getConditions() {
-        return conditions;
+        return Collections.unmodifiableList(conditions);
     }
 
-    public final int getConditionIndex(final DbColumn<?> column) {
-        final int index = conditionIndexes.getOrDefault(column, -1);
+    public final int getConditionIndex(final DbMember<?> field) {
+        Objects.requireNonNull(field, "field");
+        final int index = indexByCondition.getOrDefault(field, -1);
         if (index == -1) {
-            throw new IllegalArgumentException("no condition for column: name=" + column.getName());
+            throw new IllegalArgumentException("no condition for field: name=" + field.getName());
         }
         return index;
     }
 
-    protected final <T> void setCondition(final PreparedStatement stmt, final DbColumn<T> column, final int offset,
-                                 final T value) throws SQLException {
-        column.setParameter(stmt, offset + getConditionIndex(column) + 1, value);
+    public final <T> void setCondition(final PreparedStatement stmt, final DbMember<T> field, final T value)
+            throws SQLException {
+        field.setParameter(stmt, getConditionIndex(field), value);
     }
 
     protected final void appendWhereSQL(final StringBuilder sb) {
@@ -41,4 +48,28 @@ public abstract class DbConditional extends DbCommand {
         }
     }
 
+    protected abstract int getFirstConditionIndex();
+
+    public static abstract class Builder extends DbCommand.Builder {
+        private final List<DbCondition<?>> conditions;
+
+        protected Builder() {
+            conditions = new ArrayList<>();
+        }
+
+        protected final List<DbCondition<?>> getConditions() {
+            return Collections.unmodifiableList(conditions);
+        }
+
+        protected final void addCondition(final DbMember<?> field, final String image) {
+            final DbCondition<?> condition = new DbCondition<>(field, image);
+            for (final DbCondition<?> c : conditions) {
+                if (c.getField().getName().equals(field.getName())) {
+                    throw new IllegalArgumentException("duplicate condition: name=" + field.getName());
+                }
+            }
+            conditions.add(condition);
+            addFieldTable(field);
+        }
+    }
 }

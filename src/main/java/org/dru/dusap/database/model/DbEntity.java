@@ -2,6 +2,9 @@ package org.dru.dusap.database.model;
 
 import org.dru.dusap.reflection.ReflectionUtils;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,20 +19,22 @@ public abstract class DbEntity<T> {
         return (Supplier<T>) NULL_SUPPLIER;
     }
 
+    private final DbContext context;
     private String name;
     private final Class<T> type;
-    private Supplier<T> supplier;
-    private final List<DbColumn<?>> columns;
+    private Supplier<T> defaultSupplier;
+    private final List<DbMember<?>> members;
 
-    protected DbEntity(final String name, final Class<T> type) {
+    protected DbEntity(final DbContext context, final String name, final Class<T> type) {
+        this.context = Objects.requireNonNull(context, "context");
         setName(name);
         this.type = type;
-        columns = new ArrayList<>();
+        setDefaultSupplier(null);
+        members = new ArrayList<>();
     }
 
-    protected final void setName(final String name) {
-        Objects.requireNonNull(name, "name");
-        this.name = name;
+    public final DbContext getContext() {
+        return context;
     }
 
     public final String getName() {
@@ -44,83 +49,113 @@ public abstract class DbEntity<T> {
         return type;
     }
 
-    public final Supplier<T> getSupplier() {
-        return supplier;
+    public final Supplier<T> getDefaultSupplier() {
+        return defaultSupplier;
     }
 
-    public final List<DbColumn<?>> getColumns() {
-        return Collections.unmodifiableList(columns);
+    public final boolean hasMembers() {
+        return !members.isEmpty();
     }
 
-    public final boolean hasColumns() {
-        return !getColumns().isEmpty();
+    public final List<DbMember<?>> getMembers() {
+        return Collections.unmodifiableList(members);
     }
 
-    public final DbColumn<?> getColumn(final String name) {
-        final DbColumn<?> column = getColumnOrNull(name);
-        if (column == null) {
-            throw new IllegalArgumentException("no such column: name=" + name);
+    public final DbMember<?> getMember(final String name) {
+        final DbMember<?> member = getMemberOrNull(name);
+        if (member == null) {
+            throw new IllegalArgumentException("no such member: name=" + name);
         }
-        return column;
+        return member;
     }
 
     @SuppressWarnings("unchecked")
-    public final <C> DbColumn<C> getColumn(final String name, final Class<C> type) {
+    public final <C> DbMember<C> getMember(final String name, final Class<C> type) {
         Objects.requireNonNull(type, "type");
-        final DbColumn<?> column = getColumn(name);
-        if (!column.getType().equals(type)) {
-            throw new IllegalArgumentException("column type mismatch: name=" + name + ", type=" + type.getName());
+        final DbMember<?> member = getMember(name);
+        if (!member.getType().equals(type)) {
+            throw new IllegalArgumentException("type mismatch: type=" + type + ", memberType=" + member.getType());
         }
-        return (DbColumn<C>) column;
+        return (DbMember<C>) member;
     }
 
-
-    protected final void setDefaultUsing(final Supplier<T> supplier) {
-        this.supplier = (supplier != null ? supplier : getNullSupplier());
+    public final <C> DbMember<C> newMember(final String name, final Class<C> type) {
+        final DbMember<C> member = new DbMember<>(getContext(), getTable(), this, name, type, null);
+        addMember(member);
+        return member;
     }
 
-    protected final void setDefaultWith(final T value) {
-        setDefaultUsing(value != null ? () -> value : null);
+    public final int getColumnCount() {
+        return getColumns().size();
     }
 
-    protected DbColumn<?> getColumnOrNull(final String name) {
+    public final void setParameter(final PreparedStatement stmt, final int index, final T value) throws SQLException {
+        setParameterRaw(stmt, index, value);
+    }
+
+    protected final void getResultInto(final ResultSet rset, final int index, final T target) throws SQLException {
+        Objects.requireNonNull(rset, "rset");
+        Objects.requireNonNull(target, "instance");
+        int local = index;
+        for (final DbMember<?> member : getMembers()) {
+            final Object value = member.getResult(rset, local);
+            ReflectionUtils.setField(target, member.getField(), value);
+            local += member.getColumnCount();
+        }
+    }
+
+    protected final void setParameterFrom(final PreparedStatement stmt, final int index, final T source)
+            throws SQLException {
+        Objects.requireNonNull(stmt, "stmt");
+        Objects.requireNonNull(source, "source");
+        int local = index;
+        for (final DbMember<?> member : getMembers()) {
+            final Object value = ReflectionUtils.getField(source, member.getField());
+            member.setParameterRaw(stmt, local, value);
+            local += member.getColumnCount();
+        }
+    }
+
+    protected final void setName(final String name) {
         Objects.requireNonNull(name, "name");
-        for (final DbColumn<?> column : getColumns()) {
-            if (column.getName().equals(name)) {
-                return column;
+        this.name = name;
+    }
+
+    protected final void setDefaultSupplier(final Supplier<T> supplier) {
+        defaultSupplier = (supplier != null ? supplier : getNullSupplier());
+    }
+
+    protected final void setDefaultValue(final T value) {
+        setDefaultSupplier(value != null ? () -> value : null);
+    }
+
+    protected final DbMember<?> getMemberOrNull(final String name) {
+        Objects.requireNonNull(name, "name");
+        for (final DbMember<?> member : members) {
+            if (member.getName().equals(name)) {
+                return member;
             }
         }
         return null;
     }
 
-    protected final void addColumnInternal(final DbColumn<?> column) {
-        Objects.requireNonNull(column, "column");
-        final String name = column.getName();
-        final DbColumn<?> existing = getColumnOrNull(name);
+    protected final void addMember(final DbMember<?> member) {
+        Objects.requireNonNull(member, "member");
+        final String name = member.getName();
+        final DbMember<?> existing = getMemberOrNull(name);
         if (existing != null) {
-            throw new IllegalArgumentException("duplicate column: name=" + name);
+            throw new IllegalArgumentException("member already exist: name=" + name);
         }
-        columns.add(column);
+        members.add(member);
     }
 
-    protected final void explodeInternal() {
-        if (hasColumns()) {
-            throw new IllegalStateException("already exploded");
-        }
-        ReflectionUtils.getSerializableFields(getType()).forEach(field -> {
-            final String name = getColumnName(field.getName());
-            final Class<?> type = field.getType();
-            addColumnInternal(new DbColumn<>(this, name, type, field));
-        });
-    }
+    public abstract DbTable<?> getTable();
 
-    public abstract DbContext getContext();
+    public abstract List<DbMember<?>> getColumns();
 
-    public abstract DbEntity<?> getParent();
+    public abstract T getResult(final ResultSet rset, final int index) throws SQLException;
 
-    public abstract DbEntity<?> getRoot();
+    public abstract String getDDL();
 
-    public abstract <R, D> R accept(DbVisitor<R, D> visitor, D data);
-
-    protected abstract String getColumnName(String name);
+    protected abstract void setParameterRaw(PreparedStatement stmt, int index, Object value) throws SQLException;
 }

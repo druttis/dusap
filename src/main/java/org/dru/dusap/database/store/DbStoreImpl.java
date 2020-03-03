@@ -14,10 +14,10 @@ import java.util.function.UnaryOperator;
 public final class DbStoreImpl<K, V> implements DbStore<K, V> {
     private final DbExecutor dbExecutor;
     private final TimeSupplier timeSupplier;
-    private final DbColumn<K> dbKey;
-    private final DbColumn<V> dbValue;
-    private final DbColumn<Long> dbCreated;
-    private final DbColumn<Long> dbLastModified;
+    private final DbMember<K> dbKey;
+    private final DbMember<V> dbValue;
+    private final DbMember<Long> dbCreated;
+    private final DbMember<Long> dbLastModified;
     private final DbSelect dbSelect;
     private final DbSelect forUpdate;
     private final DbInsert dbInsert;
@@ -25,18 +25,22 @@ public final class DbStoreImpl<K, V> implements DbStore<K, V> {
     private final DbDelete dbDelete;
 
     DbStoreImpl(final DbExecutor dbExecutor, final TimeSupplier timeSupplier, final String name, final Class<K> keyType,
-                final Class<V> valueType, final DbFactory dbFactory, final DbTableManager tableManager) {
+                final Class<V> valueType, final DbTableFactory dbTableFactory, final DbTableManager tableManager,
+                final boolean exploded) {
         this.dbExecutor = dbExecutor;
         this.timeSupplier = timeSupplier;
-        final DbTable<?> dbTable = dbFactory.newTable(name);
-        dbKey = dbTable.newColumn("key", keyType);
-        dbValue = dbTable.newColumn("value", valueType).length(256);
-        dbCreated = dbTable.newColumn("created", Long.class);
-        dbLastModified = dbTable.newColumn("lastModified", Long.class);
-        dbSelect = DbSelect.column(dbValue).where(dbKey, "=?").limit(2).build();
+        final DbTable<?> dbTable = dbTableFactory.newTable(name);
+        dbKey = dbTable.newMember("key", keyType);
+        dbValue = dbTable.newMember("value", valueType).length(256);
+        if (exploded) {
+            dbValue.explode(true);
+        }
+        dbCreated = dbTable.newMember("created", Long.class);
+        dbLastModified = dbTable.newMember("lastModified", Long.class);
+        dbSelect = DbSelect.field(dbValue).where(dbKey, "=?").limit(2).build();
         forUpdate = DbSelect.extend(dbSelect).forUpdate().build();
-        dbInsert = DbInsert.columns(dbKey, dbValue, dbCreated).build();
-        dbUpdate = DbUpdate.columns(dbValue, dbLastModified).where(dbKey, "=?").build();
+        dbInsert = DbInsert.fields(dbKey, dbValue, dbCreated).build();
+        dbUpdate = DbUpdate.fields(dbValue, dbLastModified).where(dbKey, "=?").build();
         dbDelete = DbDelete.where(dbKey, "=?").build();
         tableManager.createTableIfNotExist(dbExecutor, 0, dbTable);
     }
@@ -59,17 +63,17 @@ public final class DbStoreImpl<K, V> implements DbStore<K, V> {
                 if ((original == null && result != null) || (original != null && !original.equals(result))) {
                     if (original == null) {
                         try (final PreparedStatement stmt = dbInsert.prepareStatement(conn)) {
-                            dbInsert.setColumn(stmt, dbKey, key);
-                            dbInsert.setColumn(stmt, dbValue, result);
-                            dbInsert.setColumn(stmt, dbCreated, timeSupplier.get().toEpochMilli());
+                            dbInsert.setField(stmt, dbKey, key);
+                            dbInsert.setField(stmt, dbValue, result);
+                            dbInsert.setField(stmt, dbCreated, timeSupplier.get().toEpochMilli());
                             stmt.executeUpdate();
                         }
                     } else if (result == null) {
                         delete(conn, key);
                     } else {
                         try (final PreparedStatement stmt = dbUpdate.prepareStatement(conn)) {
-                            dbUpdate.setColumn(stmt, dbValue, result);
-                            dbUpdate.setColumn(stmt, dbLastModified, timeSupplier.get().toEpochMilli());
+                            dbUpdate.setField(stmt, dbValue, result);
+                            dbUpdate.setField(stmt, dbLastModified, timeSupplier.get().toEpochMilli());
                             dbUpdate.setCondition(stmt, dbKey, key);
                             stmt.executeUpdate();
                         }
@@ -101,7 +105,7 @@ public final class DbStoreImpl<K, V> implements DbStore<K, V> {
                 if (!rset.next()) {
                     return null;
                 }
-                final V value = select.getColumn(rset, dbValue);
+                final V value = select.getField(rset, dbValue);
                 if (rset.next()) {
                     throw new SQLException("duplicate: key=" + key);
                 }

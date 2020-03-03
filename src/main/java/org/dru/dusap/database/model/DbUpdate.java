@@ -2,97 +2,74 @@ package org.dru.dusap.database.model;
 
 import org.dru.dusap.util.CollectionUtils;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public final class DbUpdate extends DbConditional {
-    public static Builder column(final DbColumn<?> column) {
-        return new Builder().column(column);
+    public static Builder field(final DbMember<?> field) {
+        return new Builder().field(field);
     }
 
-    public static Builder columns(final Collection<DbColumn<?>> columns) {
-        return new Builder().columns(columns);
+    public static Builder fields(final Collection<DbMember<?>> fields) {
+        return new Builder().fields(fields);
     }
 
-    public static Builder columns(final DbColumn<?> first, final DbColumn<?>... rest) {
-        return new Builder().columns(first, rest);
+    public static Builder fields(final DbMember<?> first, final DbMember<?>... rest) {
+        return new Builder().fields(first, rest);
     }
 
-    private final DbTable<?> table;
-
-    private DbUpdate(final List<DbColumn<?>> columns, final List<DbCondition<?>> conditions, final DbTable<?> table) {
-        super(columns, conditions);
-        Objects.requireNonNull(table, "table");
-        this.table = table;
-    }
-
-    public DbTable<?> getTable() {
-        return table;
-    }
-
-    public <T> void setCondition(final PreparedStatement stmt, final DbColumn<T> column, final T value)
-            throws SQLException {
-        setCondition(stmt, column, getColumns().size(), value);
+    private DbUpdate(final List<DbMember<?>> fields, final DbTable<?> table, final List<DbCondition<?>> conditions) {
+        super(fields, table, conditions);
     }
 
     @Override
     protected String createSQL() {
         final StringBuilder sb = new StringBuilder();
         sb.append("UPDATE ");
-        sb.append(table.getDbName());
+        sb.append(getTable().getDbName());
         sb.append(" SET ");
-        sb.append(getColumns().stream()
-                .map(column -> String.format(column.getDbName(), "=?"))
+        sb.append(getFields().stream()
+                .flatMap(field -> field.getColumns().stream())
+                .map(column -> String.format("%s%s", column.getDbName(), "=?"))
                 .collect(Collectors.joining(",")));
         appendWhereSQL(sb);
+        System.out.println(sb.toString());
         return sb.toString();
     }
 
-    public static final class Builder {
-        private final List<DbColumn<?>> columns;
-        private final Set<DbTable<?>> tables;
-        private final List<DbCondition<?>> conditions;
+    @Override
+    protected int getFirstConditionIndex() {
+        return getNextIndex();
+    }
 
-        public Builder() {
-            columns = new ArrayList<>();
-            tables = new HashSet<>();
-            conditions = new ArrayList<>();
+    public static final class Builder extends DbConditional.Builder {
+        private Builder() {
         }
 
-        public Builder column(final DbColumn<?> column) {
-            Objects.requireNonNull(column, "column");
-            columns.add(column);
-            addColumnTable(column);
+        public Builder field(final DbMember<?> field) {
+            addField(field);
             return this;
         }
 
-        public Builder columns(final Collection<DbColumn<?>> columns) {
-            Objects.requireNonNull(columns, "columns");
-            columns.forEach(this::column);
+        public Builder fields(final Collection<DbMember<?>> fields) {
+            Objects.requireNonNull(fields, "fields");
+            fields.forEach(this::field);
             return this;
         }
 
-        public Builder columns(final DbColumn<?> first, final DbColumn<?>... rest) {
-            return columns(CollectionUtils.asList(first, rest));
+        public Builder fields(final DbMember<?> first, final DbMember<?>... rest) {
+            return fields(CollectionUtils.asList(first, rest));
         }
 
-        public Builder where(final DbColumn<?> column, final String image) {
-            conditions.add(new DbCondition<>(column, image));
-            addColumnTable(column);
+        public Builder where(final DbMember<?> field, final String image) {
+            addCondition(field, image);
             return this;
         }
 
         public DbUpdate build() {
-            return new DbUpdate(columns, conditions, tables.iterator().next());
-        }
-
-        private void addColumnTable(final DbColumn<?> column) {
-            tables.add(column.getTable());
-            if (tables.size() == 2) {
-                throw new IllegalArgumentException("multiple tables update is not supported");
-            }
+            return new DbUpdate(getFields(), getTable(), getConditions());
         }
     }
 }
