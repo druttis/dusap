@@ -15,6 +15,7 @@ public final class DbPoolImpl extends AbstractPool<Connection> implements DbPool
                       final DbShardConfig config) {
         super(timeSupplier, minimumSize, maximumSize);
         this.config = Objects.requireNonNull(config, "config");
+        finish();
     }
 
     @Override

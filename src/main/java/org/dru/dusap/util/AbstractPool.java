@@ -35,6 +35,9 @@ public abstract class AbstractPool<T> implements Pool<T> {
         available = new LinkedList<>();
         occupied = new HashSet<>();
         monitor = new Object();
+    }
+
+    protected final void finish() {
         while (size() < minimumSize) {
             introduce();
         }

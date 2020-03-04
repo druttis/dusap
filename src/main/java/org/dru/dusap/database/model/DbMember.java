@@ -1,81 +1,110 @@
 package org.dru.dusap.database.model;
 
 import org.dru.dusap.database.type.DbType;
+import org.dru.dusap.reflection.ReflectionUtils;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
-public final class DbMember<T> extends DbEntity<T> implements DbContainer {
-    private final DbType<T> dbType;
+public final class DbMember<T> extends DbEntity<T> {
+    private static <T> Constructor<T> getDefaultConstructor(final Class<T> type) {
+        try {
+            return ReflectionUtils.getDefaultConstructor(type);
+        } catch (final RuntimeException exc) {
+            return null;
+        }
+    }
+
+    private final DbTable<?> table;
+    private final DbEntity<?> parent;
     private final Field field;
-    private final DbSupport support;
+    private final Constructor<T> constructor;
+    private final DbType<T> dbType;
     private int length;
     private boolean notNull;
     private boolean primaryKey;
 
-    DbMember(final DbEntity<?> parent, final String name, final Class<T> type, final Field field) {
-        super(parent, name, type);
-        Objects.requireNonNull(parent, "parent");
-        dbType = getContext().getDbType(type);
+    DbMember(final DbContext context, final DbTable<?> table, final DbEntity<?> parent, final String name,
+             final Class<T> type, final Field field) {
+        super(context, name, Objects.requireNonNull(type, "type"));
+        this.table = Objects.requireNonNull(table, "table");
+        this.parent = Objects.requireNonNull(parent, "parent");
         this.field = field;
-        support = new DbSupport(this);
+        constructor = getDefaultConstructor(getType());
+        dbType = getContext().getDbType(getType());
     }
 
     @Override
-    public DbContext getContext() {
-        return getParent().getContext();
+    public DbTable<?> getTable() {
+        return table;
     }
 
     @Override
-    public String getQualifiedName(final String name) {
-        Objects.requireNonNull(name, "name");
-        return String.format("%s_%s", getQualifiedName(), name);
+    public final List<DbMember<?>> getColumns() {
+        if (hasMembers()) {
+            return getMembers().stream()
+                    .flatMap(member -> member.getColumns().stream())
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.singletonList(this);
+        }
+    }
+
+    @Override
+    public T getResult(final ResultSet rset, final int index) throws SQLException {
+        if (hasMembers()) {
+            final T result = ReflectionUtils.newInstance(getConstructor());
+            getResultInto(rset, index, result);
+            return result;
+        } else {
+            return getDbType().getResult(rset, index, getDefaultSupplier());
+        }
     }
 
     @Override
     public String getDDL() {
         final StringBuilder sb = new StringBuilder(getDbName());
         sb.append(' ');
-        sb.append(dbType.getDDL(length));
-        if (notNull && !primaryKey) {
+        sb.append(getDbType().getDDL(getLength()));
+        if (isNotNull() && !isPrimaryKey()) {
             sb.append(" NOT NULL");
         }
         return sb.toString();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public DbTable<?> getTable() {
-        return getParent().getTable();
+    protected void setParameterRaw(final PreparedStatement stmt, final int index,
+                                   final Object value) throws SQLException {
+        if (hasMembers()) {
+            setParameterFrom(stmt, index, (T) value);
+        } else {
+            getDbType().setParameter(stmt, index, (T) value);
+        }
     }
 
-    @Override
-    public boolean hasMembers() {
-        return support.hasMembers();
-    }
-
-    @Override
-    public List<DbMember<?>> getMembers() {
-        return support.getMembers();
-    }
-
-    @Override
-    public <F> DbMember<F> getMember(final String name) {
-        return support.getMember(name);
-    }
-
-    @Override
-    public <F> DbMember<F> newMember(final String name, final Class<F> type) {
-        return support.newMember(name, type);
-    }
-
-    @Override
-    public List<DbMember<?>> getColumns() {
-        return support.getColumns();
+    public DbEntity<?> getParent() {
+        return parent;
     }
 
     public Field getField() {
         return field;
+    }
+
+    public Constructor<T> getConstructor() {
+        return constructor;
+    }
+
+    public DbType<T> getDbType() {
+        return dbType;
     }
 
     public int getLength() {
@@ -92,7 +121,7 @@ public final class DbMember<T> extends DbEntity<T> implements DbContainer {
     }
 
     public DbMember<T> notNull() {
-        this.notNull = true;
+        notNull = true;
         return this;
     }
 
@@ -101,31 +130,33 @@ public final class DbMember<T> extends DbEntity<T> implements DbContainer {
     }
 
     public DbMember<T> primaryKey() {
-        if (!primaryKey) {
-            primaryKey = true;
-            if (!dbType.isPrimitive()) {
-                support.populateMembers(getType());
-                getMembers().forEach(DbMember::primaryKey);
-            }
-        }
+        primaryKey = true;
         return this;
     }
 
-    public void explode() {
+    public DbMember<T> defaultSupplier(final Supplier<T> supplier) {
+        setDefaultSupplier(supplier);
+        return this;
+    }
+
+    public DbMember<T> defaultValue(final T value) {
+        setDefaultValue(value);
+        return this;
+    }
+
+    public void explode(final boolean recursive) {
         if (hasMembers()) {
             throw new IllegalStateException("already exploded");
+        } else if (getConstructor() != null) {
+            ReflectionUtils.getSerializableFields(getType()).forEach(field ->
+                    addMember(new DbMember<>(getContext(), getTable(), this, field.getName(), field.getType(), field)));
+            if (recursive) {
+                getMembers().forEach(member -> member.explode(true));
+            }
         }
-        if (dbType.isPrimitive()) {
-            throw new IllegalStateException("can not explode primitives");
-        }
-        support.populateMembers(getType());
     }
 
-    public String getFullyQualifiedName() {
-        return getTable().getName() + "." + getQualifiedName();
-    }
-
-    public String getFullyQualifiedDbName() {
-        return String.format("`%s`", getFullyQualifiedName());
+    public void explode() {
+        explode(false);
     }
 }

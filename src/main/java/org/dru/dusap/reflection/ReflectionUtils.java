@@ -91,7 +91,10 @@ public final class ReflectionUtils {
             return source;
         }
         final T target = newInstance(constructor, Collections.emptyList());
-        getFields(objectClass).forEach(field -> setField(target, field, copyInstance(getField(source, field))));
+        getFields(objectClass).stream().filter(field -> {
+            final int mod = field.getModifiers();
+            return !Modifier.isStatic(mod);
+        }).forEach(field -> setField(target, field, copyInstance(getField(source, field))));
         return target;
     }
 
@@ -105,8 +108,7 @@ public final class ReflectionUtils {
         return getFields(clazz).stream().
                 filter(field -> {
                     final int mod = field.getModifiers();
-                    return !Modifier.isTransient(mod)
-                            && !Modifier.isStatic(mod);
+                    return !(Modifier.isTransient(mod) || Modifier.isFinal(mod) || Modifier.isStatic(mod));
                 }).collect(Collectors.toList());
     }
 

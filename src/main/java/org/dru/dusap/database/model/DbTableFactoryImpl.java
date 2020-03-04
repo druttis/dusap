@@ -5,16 +5,11 @@ import org.dru.dusap.database.type.DbTypes;
 
 import java.util.Objects;
 
-public final class DbFactoryImpl implements DbFactory, DbContext {
+public final class DbTableFactoryImpl implements DbTableFactory, DbContext {
     private final DbTypes dbTypes;
 
-    public DbFactoryImpl(final DbTypes dbTypes) {
+    public DbTableFactoryImpl(final DbTypes dbTypes) {
         this.dbTypes = dbTypes;
-    }
-
-    @Override
-    public DbTable<?> newTable(final String name) {
-        return new DbTable<>(this, name, null);
     }
 
     @Override
@@ -24,8 +19,8 @@ public final class DbFactoryImpl implements DbFactory, DbContext {
     }
 
     @Override
-    public DbSelect select() {
-        return new DbSelect();
+    public DbTable<?> newTable(final String name) {
+        return new DbTable<>(this, name, null);
     }
 
     @Override
