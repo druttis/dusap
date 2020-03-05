@@ -3,10 +3,6 @@ package org.dru.dusap.util;
 import java.util.Objects;
 
 public final class JumpConsistentHash {
-    private static final long CONSTANT = 2862933555777941757L;
-    private static final long JUMP = 1L << 31;
-    private static final long UNSIGNED_MASK = 0x7fffffffffffffffL;
-
     private JumpConsistentHash() {
         throw new AssertionError("static");
     }
@@ -16,26 +12,26 @@ public final class JumpConsistentHash {
         return hash(key.hashCode(), numBuckets);
     }
 
-    public static int hash(final long hash, final int numBuckets) {
-        if (numBuckets < 0) {
-            throw new IllegalArgumentException("size has to be 0 or greater: " + numBuckets);
+    public static int hash(final long key, final int numBuckets) {
+        if (numBuckets < 1) {
+            throw new IllegalArgumentException("numBuckets has to be 1 or greater: " + numBuckets);
         }
-        long k = hash;
+        long k = key;
         long b = -1;
         long j = 0;
         while (j < numBuckets) {
             b = j;
-            k = k * CONSTANT + 1L;
-            j = Math.round((b + 1L) * (JUMP / toDouble((k >>> 33) + 1L)));
+            k = k * 2862933555777941757L + 1L;
+            j = Math.round((b + 1L) * (2147483648L / dbl((k >>> 33) + 1L)));
         }
         return (int) b;
     }
 
-    public static double toDouble(final long n) {
-        double d = n & UNSIGNED_MASK;
-        if (n < 0L) {
-            d += 0x1.0p63;
+    private static double dbl(final long sl) {
+        double ud = sl & 0x7fffffffffffffffL;
+        if (sl < 0) {
+            ud += 0x1.0p63;
         }
-        return d;
+        return ud;
     }
 }
