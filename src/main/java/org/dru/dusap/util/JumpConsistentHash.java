@@ -22,7 +22,7 @@ public final class JumpConsistentHash {
         while (j < numBuckets) {
             b = j;
             k = k * 2862933555777941757L + 1L;
-            j = (long) ((b + 1L) * (2147483648L / dbl((k >>> 33) + 1L)));
+            j = Math.round((b + 1L) * (2147483648L / dbl((k >>> 33) + 1L)));
         }
         return (int) b;
     }
