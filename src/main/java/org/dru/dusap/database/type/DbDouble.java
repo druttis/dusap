@@ -13,6 +13,11 @@ public final class DbDouble extends AbstractDbType<Double> {
     }
 
     @Override
+    protected String getSQLImpl(final Double value) {
+        return value.toString();
+    }
+
+    @Override
     protected Double getResultImpl(final ResultSet rset, final int index) throws SQLException {
         return rset.getDouble(index);
     }

@@ -26,6 +26,11 @@ public final class DbJson<T> extends AbstractDbType<T> {
     }
 
     @Override
+    protected String getSQLImpl(final T value) {
+        return String.format("\"%s\"", jsonSerializer.objectToString(value));
+    }
+
+    @Override
     protected T getResultImpl(final ResultSet rset, final int index) throws SQLException {
         final InputStream in = rset.getBinaryStream(index);
         if (in == null) {

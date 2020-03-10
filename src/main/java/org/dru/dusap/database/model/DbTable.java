@@ -6,90 +6,76 @@ import java.lang.reflect.Constructor;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 public final class DbTable<T> extends DbEntity<T> {
+    private final DbContext context;
+    private final List<DbColumn<?>> columns;
     private final Constructor<T> constructor;
 
     DbTable(final DbContext context, final String name, final Class<T> type) {
-        super(context, name, type);
+        super(name, type);
+        Objects.requireNonNull(context, "context");
+        this.context = context;
+        columns = new ArrayList<>();
         if (type != null) {
             constructor = ReflectionUtils.getDefaultConstructor(type);
             ReflectionUtils.getSerializableFields(type).forEach(field ->
-                    addMember(new DbMember<>(getContext(), this, this, field.getName(), field.getType(), field)));
+                    addColumn(new DbColumn<>(this, field.getName(), field.getType(), field)));
         } else {
             constructor = null;
         }
     }
 
     @Override
-    public DbTable<?> getTable() {
-        return this;
+    public DbContext getContext() {
+        return context;
     }
 
     @Override
-    public final List<DbMember<?>> getColumns() {
-        return getMembers().stream()
-                .flatMap(member -> member.getColumns().stream())
-                .collect(Collectors.toList());
+    public <R, D> R accept(final DbEntityVisitor<R, D> visitor, final D data) {
+        return visitor.visitTable(this, data);
     }
 
-    @Override
-    public T getResult(final ResultSet rset, final int index) throws SQLException {
-        final T result = ReflectionUtils.newInstance(getConstructor());
-        int local = index;
-        for (final DbMember<?> member : getMembers()) {
-            final Object value = member.getResult(rset, local);
-            ReflectionUtils.setField(result, member.getField(), value);
-            local += member.getColumnCount();
-        }
-        return result;
+    public int getColumnCount() {
+        return columns.size();
     }
 
-    @Override
-    public String getDDL() {
-        final StringBuilder sb = new StringBuilder("CREATE TABLE IF NOT EXISTS ");
-        sb.append(getDbName());
-        sb.append(" (\n");
-        sb.append(getColumns().stream()
-                .map(DbEntity::getDDL)
-                .collect(Collectors.joining(",\n")));
-        final List<DbMember<?>> primaryKeyColumns = getColumns().stream()
-                .filter(DbMember::isPrimaryKey)
-                .collect(Collectors.toList());
-        if (!primaryKeyColumns.isEmpty()) {
-            sb.append(",\nPRIMARY KEY (");
-            sb.append(primaryKeyColumns.stream()
-                    .map(DbMember::getDbName)
-                    .collect(Collectors.joining(",")));
-            sb.append(')');
-        }
-        sb.append("\n) ENGINE=InnoDb CHARACTER SET=utf8mb4");
-        return sb.toString();
+    public List<DbColumn<?>> getColumns() {
+        return Collections.unmodifiableList(columns);
     }
 
-    @Override
-    protected void setParameterRaw(final PreparedStatement stmt, final int index, final Object value)
-            throws SQLException {
-        if (getType() == null) {
-            throw new IllegalStateException("table type not defined");
-        }
-        setParameterFrom(stmt, index, getType().cast(value));
+    public <C> DbColumn<C> newColumn(final String name, final Class<C> type) {
+        final DbColumn<C> column = new DbColumn<>(this, name, type, null);
+        addColumn(column);
+        return column;
     }
 
     public Constructor<T> getConstructor() {
         return constructor;
     }
 
-    public DbTable<T> defaultSupplier(final Supplier<T> supplier) {
-        setDefaultSupplier(supplier);
-        return this;
+    public T getResult(final ResultSet rset) throws SQLException {
+        final T value = ReflectionUtils.newInstance(getConstructor());
+        int index = 0;
+        for (final DbColumn<?> column : getColumns()) {
+            column.getResultInto(rset, ++index, value);
+        }
+        return value;
     }
 
-    public DbTable<T> defaultValue(final T value) {
-        setDefaultValue(value);
-        return this;
+    public void setParameter(final PreparedStatement stmt, final T value) throws SQLException {
+        int index = 0;
+        for (final DbColumn<?> column : getColumns()) {
+            column.setParameterFrom(stmt, ++index, value);
+        }
+    }
+
+    private void addColumn(final DbColumn<?> column) {
+        Objects.requireNonNull(column, "column");
+        columns.add(column);
     }
 }

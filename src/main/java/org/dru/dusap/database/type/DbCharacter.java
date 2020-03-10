@@ -13,6 +13,11 @@ public final class DbCharacter extends AbstractDbType<Character> {
     }
 
     @Override
+    protected String getSQLImpl(final Character value) {
+        return String.format("\"%s\"", value.toString());
+    }
+
+    @Override
     protected Character getResultImpl(final ResultSet rset, final int index) throws SQLException {
         final String s = rset.getString(index);
         return (s != null ? s.charAt(0) : null);

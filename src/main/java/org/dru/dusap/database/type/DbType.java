@@ -20,4 +20,6 @@ public interface DbType<T> {
     void setParameter(PreparedStatement stmt, int index, T value) throws SQLException;
 
     String getDDL(int length);
+
+    String getSQL(T value);
 }

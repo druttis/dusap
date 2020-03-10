@@ -13,6 +13,11 @@ public final class DbLong extends AbstractDbType<Long> {
     }
 
     @Override
+    protected String getSQLImpl(final Long value) {
+        return value.toString();
+    }
+
+    @Override
     protected Long getResultImpl(final ResultSet rset, final int index) throws SQLException {
         return rset.getLong(index);
     }

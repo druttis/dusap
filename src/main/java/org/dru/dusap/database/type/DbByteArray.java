@@ -9,12 +9,23 @@ import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class DbByteArray extends AbstractDbType<byte[]> {
     public static final DbByteArray INSTANCE = new DbByteArray();
 
     private DbByteArray() {
         super(JDBCType.BLOB, false, true);
+    }
+
+    @Override
+    protected String getSQLImpl(final byte[] value) {
+        final StringBuilder sb = new StringBuilder();
+        for (final byte b : value) {
+            sb.append(String.format("%02x", b & 0xff));
+        }
+        return String.format("UNHEX('%s')", sb.toString());
     }
 
     @Override

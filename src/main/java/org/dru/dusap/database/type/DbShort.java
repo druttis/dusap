@@ -13,6 +13,11 @@ public final class DbShort extends AbstractDbType<Short> {
     }
 
     @Override
+    protected String getSQLImpl(final Short value) {
+        return value.toString();
+    }
+
+    @Override
     protected Short getResultImpl(final ResultSet rset, final int index) throws SQLException {
         return rset.getShort(index);
     }

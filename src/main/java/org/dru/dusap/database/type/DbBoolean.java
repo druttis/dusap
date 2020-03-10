@@ -13,6 +13,11 @@ public final class DbBoolean extends AbstractDbType<Boolean> {
     }
 
     @Override
+    protected String getSQLImpl(final Boolean value) {
+        return value ? "1" : "0";
+    }
+
+    @Override
     protected Boolean getResultImpl(final ResultSet rset, final int index) throws SQLException {
         return rset.getBoolean(index);
     }

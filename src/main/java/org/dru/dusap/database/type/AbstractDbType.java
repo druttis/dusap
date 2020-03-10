@@ -77,6 +77,13 @@ public abstract class AbstractDbType<T> implements DbType<T> {
         }
     }
 
+    @Override
+    public String getSQL(final T value) {
+        return (value != null ? getSQLImpl(value) : "NULL");
+    }
+
+    protected abstract String getSQLImpl(final T value);
+
     protected abstract T getResultImpl(ResultSet rset, int index) throws SQLException;
 
     protected abstract void setParameterImpl(PreparedStatement stmt, int index, T value) throws SQLException;

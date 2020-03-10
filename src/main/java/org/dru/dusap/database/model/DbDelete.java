@@ -1,42 +1,29 @@
 package org.dru.dusap.database.model;
 
-import java.util.List;
-
-public final class DbDelete extends DbConditional {
-    public static Builder where(final DbMember<?> field, final String image) {
-        return new Builder().where(field, image);
+public final class DbDelete extends DbStatement {
+    public static DbDelete all() {
+        return new DbDelete();
     }
 
-    private DbDelete(final List<DbMember<?>> fields, final DbTable<?> table, final List<DbCondition<?>> conditions) {
-        super(fields, table, conditions);
+    public static DbDelete where(final DbColumn<?> column, final String op) {
+        return new DbDelete();
     }
 
-    @Override
-    protected String createSQL() {
-        final StringBuilder sb = new StringBuilder();
-        sb.append("DELETE FROM ");
-        sb.append(getTable().getDbName());
-        appendWhereSQL(sb);
-        System.out.println(sb.toString());
-        return sb.toString();
+    private DbDelete() {
     }
 
-    @Override
-    protected int getFirstConditionIndex() {
-        return 1;
+    public DbDelete and(final DbColumn<?> column, final String op) {
+        addCondition(column, op);
+        return this;
     }
 
-    public static final class Builder extends DbConditional.Builder {
-        private Builder() {
-        }
+    public <C> DbDelete and(final DbColumn<C> column, final String op, final C value) {
+        addCondition(column, op, value);
+        return this;
+    }
 
-        public Builder where(final DbMember<?> members, final String image) {
-            addCondition(members, image);
-            return this;
-        }
-
-        public DbDelete build() {
-            return new DbDelete(getFields(), getTable(), getConditions());
-        }
+    public <C> DbDelete and(final DbColumn<C> column, final String op, final DbColumn<C> other) {
+        addCondition(column, op, other);
+        return this;
     }
 }
