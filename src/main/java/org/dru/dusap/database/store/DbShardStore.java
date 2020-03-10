@@ -4,43 +4,66 @@ import org.dru.dusap.database.executor.DbExecutor;
 import org.dru.dusap.time.TimeSupplier;
 
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 public final class DbShardStore<K, V> implements DbStore<K, V> {
-    private final DbExecutor dbExecutor;
     private final int shardNum;
+    private final DbExecutor dbExecutor;
     private final DbStoreSupport<K, V> dbStoreSupport;
     private final TimeSupplier timeSupplier;
 
-    public DbShardStore(final DbExecutor dbExecutor, final int shardNum, final DbStoreSupport<K, V> dbStoreSupport,
-                        final TimeSupplier timeSupplier) {
-        this.dbExecutor = dbExecutor;
+    DbShardStore(final int shardNum, final DbExecutor dbExecutor, final DbStoreSupport<K, V> dbStoreSupport,
+                 final TimeSupplier timeSupplier) {
         this.shardNum = shardNum;
+        this.dbExecutor = dbExecutor;
         this.dbStoreSupport = dbStoreSupport;
         this.timeSupplier = timeSupplier;
     }
 
     @Override
-    public V get(final K key) throws SQLException {
-        return dbExecutor.query(shardNum, conn -> dbStoreSupport.get(conn, key));
+    public Map<K, V> getAll(final Collection<K> keys, final boolean locked) throws SQLException {
+        return dbExecutor.query(shardNum, conn -> dbStoreSupport.getAll(conn, keys, locked));
     }
 
     @Override
-    public void set(final K key, final V value) throws SQLException {
-        dbExecutor.execute(shardNum, conn -> dbStoreSupport.set(conn, key, value, getNowMs()));
+    public V get(final K key, final boolean locked) throws SQLException {
+        return dbExecutor.query(shardNum, conn -> dbStoreSupport.get(conn, key, locked));
     }
 
     @Override
-    public V update(final K key, final UnaryOperator<V> operator) throws SQLException {
-        return dbExecutor.update(shardNum, conn -> dbStoreSupport.update(conn, key, operator, getNowMs()));
+    public void putAll(final Map<K, V> entries) throws SQLException {
+        dbExecutor.execute(shardNum, conn -> dbStoreSupport.putAll(conn, entries, nowMs()));
     }
 
     @Override
-    public boolean delete(final K key) throws SQLException {
-        return dbExecutor.update(0, conn -> dbStoreSupport.delete(conn, key));
+    public void put(final K key, final V value) throws SQLException {
+        dbExecutor.execute(shardNum, conn -> dbStoreSupport.put(conn, key, value, nowMs()));
     }
 
-    private long getNowMs() {
+    @Override
+    public Map<K, V> computeAll(final Collection<K> keys, final UnaryOperator<V> operator) throws SQLException {
+        return dbExecutor.update(shardNum, conn -> dbStoreSupport.computeAll(conn, keys, operator, nowMs()));
+    }
+
+    @Override
+    public V compute(final K key, final UnaryOperator<V> operator) throws SQLException {
+        return dbExecutor.update(shardNum, conn -> dbStoreSupport.compute(conn, key, operator, nowMs()));
+    }
+
+    @Override
+    public Set<K> removeAll(final Collection<K> keys) throws SQLException {
+        return dbExecutor.update(shardNum, conn -> dbStoreSupport.removeAll(conn, keys, nowMs()));
+    }
+
+    @Override
+    public boolean remove(final K key) throws SQLException {
+        return dbExecutor.update(shardNum, conn -> dbStoreSupport.remove(conn, key, nowMs()));
+    }
+
+    private long nowMs() {
         return timeSupplier.get().toEpochMilli();
     }
 }

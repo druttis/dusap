@@ -9,20 +9,23 @@ import org.dru.dusap.time.TimeSupplier;
 public final class DbStoreFactoryImpl implements DbStoreFactory {
     private final DbExecutorProvider dbExecutorProvider;
     private final TimeSupplier timeSupplier;
-    private final DbTableFactory factory;
+    private final DbTableFactory dbTableFactory;
     private final DbTableManager dbTableManager;
 
     public DbStoreFactoryImpl(final DbExecutorProvider dbExecutorProvider, final TimeSupplier timeSupplier,
-                              final DbTableFactory factory, final DbTableManager dbTableManager) {
+                              final DbTableFactory dbTableFactory, final DbTableManager dbTableManager) {
         this.dbExecutorProvider = dbExecutorProvider;
         this.timeSupplier = timeSupplier;
-        this.factory = factory;
+        this.dbTableFactory = dbTableFactory;
         this.dbTableManager = dbTableManager;
     }
 
     @Override
-    public <K, V> DbStore<K, V> newStore(final String name, final Class<K> keyType, final Class<V> valueType) {
+    public <K, V> DbStore<K, V> newStore(final String name, final Class<K> keyType, final Class<V> valueType,
+                                         final boolean strict) {
         final DbExecutor dbExecutor = dbExecutorProvider.getExecutor("store");
-        return new DbStoreImpl<>(dbExecutor, timeSupplier, name, keyType, valueType, factory, dbTableManager);
+        final DbStoreSupport<K, V> dbStoreSupport
+                = new DbStoreSupportImpl<>(dbTableFactory, name, keyType, valueType, strict);
+        return new DbShardStore<>(0, dbExecutor, dbStoreSupport, timeSupplier);
     }
 }
