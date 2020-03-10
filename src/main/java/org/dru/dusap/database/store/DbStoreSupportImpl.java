@@ -57,8 +57,8 @@ public final class DbStoreSupportImpl<K, V> implements DbStoreSupport<K, V> {
             final DbStatement dbStatement = (locked ? dbSelectForUpdate : dbSelect);
             try (final PreparedStatement stmt = dbStatement.prepareStatement(conn)) {
                 dbStatement.setParameter(stmt, dbKey, key);
+                stmt.setFetchSize(2);
                 try (final ResultSet rset = stmt.executeQuery()) {
-                    rset.setFetchSize(2);
                     if (rset.next()) {
                         final V value = dbStatement.getResult(rset, dbValue);
                         if (value != null) {
@@ -80,8 +80,8 @@ public final class DbStoreSupportImpl<K, V> implements DbStoreSupport<K, V> {
                     + (locked ? " FOR UPDATE" : ""), dbKey, dbValue, dbTable, dbKey, keys.size(), keys.size() + 1);
             try (final PreparedStatement stmt = dbStatement.prepareStatement(conn)) {
                 dbStatement.setParameters(stmt, dbKey, keys);
+                stmt.setFetchSize(keys.size() + 1);
                 try (final ResultSet rset = stmt.executeQuery()) {
-                    rset.setFetchSize(keys.size() + 1);
                     while (rset.next()) {
                         final K key = dbStatement.getResult(rset, dbKey);
                         final V value = dbStatement.getResult(rset, dbValue);
@@ -108,6 +108,9 @@ public final class DbStoreSupportImpl<K, V> implements DbStoreSupport<K, V> {
 
     @Override
     public void putAll(final Connection conn, final Map<K, V> entries, final long nowMs) throws SQLException {
+        if (entries.isEmpty()) {
+            return;
+        }
         final Set<K> removeKeys = new HashSet<>();
         try (final PreparedStatement stmt = dbUpsert.prepareStatement(conn)) {
             entries.forEach(ThrowingBiConsumer.wrap((key, value) -> {
@@ -133,6 +136,9 @@ public final class DbStoreSupportImpl<K, V> implements DbStoreSupport<K, V> {
     @Override
     public Map<K, V> computeAll(final Connection conn, final Collection<K> keys, final UnaryOperator<V> operator,
                                 final long nowMs) throws SQLException {
+        if (keys.isEmpty()) {
+            return Collections.emptyMap();
+        }
         final Map<K, V> newEntries = new HashMap<>();
         final Map<K, V> oldEntries = getAll(conn, keys, true);
         final Map<K, V> putEntries = new HashMap<>();
@@ -162,6 +168,9 @@ public final class DbStoreSupportImpl<K, V> implements DbStoreSupport<K, V> {
 
     @Override
     public Set<K> removeAll(final Connection conn, final Collection<K> keys, final long nowMs) throws SQLException {
+        if (keys.isEmpty()) {
+            return Collections.emptySet();
+        }
         final int[] array;
         if (strict) {
             try (final PreparedStatement stmt = dbDelete.prepareStatement(conn)) {
