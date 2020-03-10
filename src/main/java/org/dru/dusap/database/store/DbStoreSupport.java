@@ -1,6 +1,9 @@
 package org.dru.dusap.database.store;
 
-import org.dru.dusap.database.model.*;
+import org.dru.dusap.database.model.DbColumn;
+import org.dru.dusap.database.model.DbStatement;
+import org.dru.dusap.database.model.DbTable;
+import org.dru.dusap.database.model.DbTableFactory;
 import org.dru.dusap.reflection.ReflectionUtils;
 
 import java.sql.Connection;
@@ -14,12 +17,12 @@ public final class DbStoreSupport<K, V> {
     private final DbColumn<K> dbKey;
     private final DbColumn<V> dbValue;
     private final DbColumn<Long> dbCreated;
-    private final DbColumn<Long> dbLastModified;
-    private final DbSelect dbSelect;
-    private final DbSelect dbSelectForUpdate;
-    private final DbInsertOrUpdate dbSet;
-    private final DbUpdate dbUpdate;
-    private final DbDelete dbDelete;
+    private final DbColumn<Long> dbModified;
+    private final DbStatement dbSelect;
+    private final DbStatement dbSelectForUpdate;
+    private final DbStatement dbUpsert;
+    private final DbStatement dbUpdate;
+    private final DbStatement dbDelete;
 
     public DbStoreSupport(final DbTableFactory dbTableFactory, final String tableName, final Class<K> keyType,
                           final Class<V> valueType) {
@@ -27,15 +30,12 @@ public final class DbStoreSupport<K, V> {
         dbKey = dbTable.newColumn("key", keyType);
         dbValue = dbTable.newColumn("value", valueType).length(65536);
         dbCreated = dbTable.newColumn("created", Long.class);
-        dbLastModified = dbTable.newColumn("lastModified", Long.class);
-        dbSelect = DbSelect.column(dbValue).where(dbKey, "=").limit(2);
-        dbSelectForUpdate = DbSelect.column(dbValue).where(dbKey, "=").limit(2).forUpdate();
-        dbSet = DbInsertOrUpdate.fields(dbKey, dbValue, dbCreated)
-                .onDuplicateKeyCopy(dbValue)
-                .onDuplicateKeyUpdate(dbLastModified)
-                .build();
-        dbUpdate = DbUpdate.fields(dbValue, dbLastModified).where(dbKey, "=?").build();
-        dbDelete = DbDelete.where(dbKey, "=?").build();
+        dbModified = dbTable.newColumn("lastModified", Long.class);
+        dbSelect = DbStatement.parse("SELECT %r FROM %n WHERE %p=? LIMIT 2", dbValue, dbTable, dbKey);
+        dbSelectForUpdate = DbStatement.parse("SELECT %r FROM %n WHERE %p=? LIMIT 2 FOR UPDATE", dbValue, dbTable, dbKey);
+        dbUpsert = DbStatement.parse("INSERT INTO %n (%p,%p,%p) VALUES (?,?,?) ON DUPLICATE KEY UPDATE %2=VALUES(%2),%n=VALUES(%3)", dbTable, dbKey, dbValue, dbCreated);
+        dbUpdate = DbStatement.parse("UPDATE %n SET %p=?,%p=? WHERE %p=?", dbTable, dbValue, dbModified, dbKey);
+        dbDelete = DbStatement.parse("DELETE FROM %n WHERE %p=?", dbTable, dbKey);
     }
 
     public DbTable<?> getDbTable() {
@@ -47,11 +47,10 @@ public final class DbStoreSupport<K, V> {
     }
 
     public void set(final Connection conn, final K key, final V value, final long nowMs) throws SQLException {
-        try (final PreparedStatement stmt = dbSet.prepareStatement(conn)) {
-            dbSet.setField(stmt, dbKey, key);
-            dbSet.setField(stmt, dbValue, value);
-            dbSet.setField(stmt, dbCreated, nowMs);
-            dbSet.setOnDuplicateKeyUpdate(stmt, dbLastModified, nowMs);
+        try (final PreparedStatement stmt = dbUpsert.prepareStatement(conn)) {
+            dbUpsert.setParameter(stmt, dbKey, key);
+            dbUpsert.setParameter(stmt, dbValue, value);
+            dbUpsert.setParameter(stmt, dbCreated, nowMs);
             stmt.executeUpdate();
         }
     }
@@ -67,9 +66,9 @@ public final class DbStoreSupport<K, V> {
                 set(conn, key, newValue, nowMs);
             } else {
                 try (final PreparedStatement stmt = dbUpdate.prepareStatement(conn)) {
-                    dbUpdate.setField(stmt, dbValue, newValue);
-                    dbUpdate.setField(stmt, dbLastModified, nowMs);
-                    dbUpdate.setCondition(stmt, dbKey, key);
+                    dbUpdate.setParameter(stmt, dbValue, newValue);
+                    dbUpdate.setParameter(stmt, dbModified, nowMs);
+                    dbUpdate.setParameter(stmt, dbKey, key);
                     stmt.executeUpdate();
                 }
             }
@@ -79,18 +78,18 @@ public final class DbStoreSupport<K, V> {
 
     public boolean delete(final Connection conn, final K key) throws SQLException {
         try (final PreparedStatement stmt = dbDelete.prepareStatement(conn)) {
-            dbDelete.setCondition(stmt, dbKey, key);
+            dbDelete.setParameter(stmt, dbKey, key);
             return (stmt.executeUpdate() != 0);
         }
     }
 
-    private V get(final Connection conn, final DbSelect select, final K key, final boolean checkDuplicate)
+    private V get(final Connection conn, final DbStatement select, final K key, final boolean checkDuplicate)
             throws SQLException {
         try (final PreparedStatement stmt = select.prepareStatement(conn)) {
             select.setParameter(stmt, dbKey, key);
             try (final ResultSet rset = stmt.executeQuery()) {
-                if (select.getLimit() != null) {
-                    rset.setFetchSize(select.getLimit());
+                if (checkDuplicate) {
+                    rset.setFetchSize(2);
                 }
                 if (!rset.next()) {
                     return null;

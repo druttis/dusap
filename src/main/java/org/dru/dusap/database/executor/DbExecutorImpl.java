@@ -58,7 +58,7 @@ public final class DbExecutorImpl implements DbExecutor {
     }
 
     @Override
-    public void update(final int shard, final ThrowingConsumer<Connection, SQLException> command)
+    public void execute(final int shard, final ThrowingConsumer<Connection, SQLException> command)
             throws SQLException {
         update(shard, (ThrowingFunction<Connection, Void, SQLException>) connection -> {
             command.accept(connection);

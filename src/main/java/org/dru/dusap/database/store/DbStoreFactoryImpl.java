@@ -21,9 +21,8 @@ public final class DbStoreFactoryImpl implements DbStoreFactory {
     }
 
     @Override
-    public <K, V> DbStore<K, V> newStore(final String name, final Class<K> keyType, final Class<V> valueType,
-                                         final boolean exploded) {
+    public <K, V> DbStore<K, V> newStore(final String name, final Class<K> keyType, final Class<V> valueType) {
         final DbExecutor dbExecutor = dbExecutorProvider.getExecutor("store");
-        return new DbStoreImpl<>(dbExecutor, timeSupplier, name, keyType, valueType, factory, dbTableManager, exploded);
+        return new DbStoreImpl<>(dbExecutor, timeSupplier, name, keyType, valueType, factory, dbTableManager);
     }
 }

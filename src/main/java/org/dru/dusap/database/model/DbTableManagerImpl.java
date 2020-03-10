@@ -19,7 +19,7 @@ public final class DbTableManagerImpl implements DbTableManager {
     public void createTableIfNotExist(final DbExecutor executor, final int shard, final DbTable<?> table) {
         if (visited.add(new Entry(executor, shard))) {
             try {
-                executor.update(shard, conn -> {
+                executor.execute(shard, conn -> {
                     final String ddl = table.accept(DDLEntityVisitor.INSTANCE, null);
                     System.out.println(ddl);
                     try (final PreparedStatement stmt = conn.prepareStatement(ddl)) {

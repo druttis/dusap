@@ -32,6 +32,7 @@ public final class DbColumn<C> extends DbEntity<C> {
         this.table = table;
         this.dbType = getContext().getDbType(type);
         this.field = field;
+        defaultUsing(null);
     }
 
     @Override
@@ -115,5 +116,10 @@ public final class DbColumn<C> extends DbEntity<C> {
     public void setParameterFrom(final PreparedStatement stmt, final int index, final Object object)
             throws SQLException {
         setParameter(stmt, index, getType().cast(ReflectionUtils.getField(object, getField())));
+    }
+
+    @Override
+    public String toString() {
+        return getName();
     }
 }

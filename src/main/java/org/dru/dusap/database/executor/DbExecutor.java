@@ -11,5 +11,5 @@ public interface DbExecutor {
 
     <T> T update(int shard, ThrowingFunction<Connection, T, SQLException> command) throws SQLException;
 
-    void update(int shard, ThrowingConsumer<Connection, SQLException> command) throws SQLException;
+    void execute(int shard, ThrowingConsumer<Connection, SQLException> command) throws SQLException;
 }

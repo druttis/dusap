@@ -40,12 +40,22 @@ public final class DbTable<T> extends DbEntity<T> {
         return visitor.visitTable(this, data);
     }
 
-    public int getColumnCount() {
-        return columns.size();
-    }
-
     public List<DbColumn<?>> getColumns() {
         return Collections.unmodifiableList(columns);
+    }
+
+    public int getColumnCount() {
+        return getColumns().size();
+    }
+
+    public DbColumn<?> getColumn(final String name) {
+        Objects.requireNonNull(name, "name");
+        for (final DbColumn<?> column : getColumns()) {
+            if (column.getName().equals(name)) {
+                return column;
+            }
+        }
+        throw new IllegalArgumentException("no such column: name=" + name);
     }
 
     public <C> DbColumn<C> newColumn(final String name, final Class<C> type) {

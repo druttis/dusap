@@ -27,17 +27,17 @@ public final class DbShardStore<K, V> implements DbStore<K, V> {
 
     @Override
     public void set(final K key, final V value) throws SQLException {
-        dbExecutor.updateNoResult(shardNum, conn -> dbStoreSupport.set(conn, key, value, getNowMs()));
+        dbExecutor.execute(shardNum, conn -> dbStoreSupport.set(conn, key, value, getNowMs()));
     }
 
     @Override
     public V update(final K key, final UnaryOperator<V> operator) throws SQLException {
-        return dbExecutor.updateWithResult(shardNum, conn -> dbStoreSupport.update(conn, key, operator, getNowMs()));
+        return dbExecutor.update(shardNum, conn -> dbStoreSupport.update(conn, key, operator, getNowMs()));
     }
 
     @Override
     public boolean delete(final K key) throws SQLException {
-        return dbExecutor.updateWithResult(0, conn -> dbStoreSupport.delete(conn, key));
+        return dbExecutor.update(0, conn -> dbStoreSupport.delete(conn, key));
     }
 
     private long getNowMs() {
