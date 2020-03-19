@@ -1,7 +1,5 @@
 package org.dru.dusap.database.model;
 
-import org.dru.dusap.util.CollectionUtils;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -37,23 +35,22 @@ import java.util.stream.IntStream;
  */
 
 public final class DbStatement {
-    public static DbStatement parse(final String sql, final Object first, final Object... rest) {
-        return parse(sql, CollectionUtils.asList(first, rest));
+    public static DbStatement parse(final String sql, final Object... args) {
+        return parse(sql, Arrays.asList(args));
     }
 
-    public static DbStatement parse(final String sql, final List<?> args) {
+    private static DbStatement parse(final String sql, final List<?> args) {
         Objects.requireNonNull(sql, "sql");
         Objects.requireNonNull(args, "args");
-        final StringBuilder sb = new StringBuilder();
-        final Iterator<?> it = args.iterator();
         final Map<DbColumn<?>, List<Integer>> rsetIndexesByDbColumn = new HashMap<>();
-        final Map<DbColumn<?>, List<Integer>> stmtIndexesByDbColumn = new HashMap<>();
-        DbColumn<?> last = null;
-        int countIndex = -1;
         int rsetIndexCounter = 0;
+        final Map<DbColumn<?>, List<Integer>> stmtIndexesByDbColumn = new HashMap<>();
         int stmtIndexCounter = 0;
         int index = 0;
-
+        int countIndex = -1;
+        final StringBuilder sb = new StringBuilder();
+        final Iterator<?> it = args.iterator();
+        DbColumn<?> last = null;
         while (index < sql.length()) {
             char ch = sql.charAt(index++);
             if (ch == '"' || ch == '\'') {
@@ -129,18 +126,21 @@ public final class DbStatement {
                 sb.append(ch);
             }
         }
-        return new DbStatement(sql, sb.toString(), rsetIndexesByDbColumn, stmtIndexesByDbColumn, countIndex);
+        return new DbStatement(sql, args, sb.toString(), rsetIndexesByDbColumn, stmtIndexesByDbColumn, countIndex);
     }
 
     private final String raw;
+    private final List<?> args;
     private final String sql;
     private final Map<DbColumn<?>, List<Integer>> rsetIndexesByColumn;
     private final Map<DbColumn<?>, List<Integer>> stmtIndexesByColumn;
     private final int countIndex;
 
-    private DbStatement(final String raw, final String sql, final Map<DbColumn<?>, List<Integer>> rsetIndexesByColumn,
+    private DbStatement(final String raw, final List<?> args, final String sql,
+                        final Map<DbColumn<?>, List<Integer>> rsetIndexesByColumn,
                         final Map<DbColumn<?>, List<Integer>> stmtIndexesByColumn, final int countIndex) {
         this.raw = raw;
+        this.args = args;
         this.sql = sql;
         this.rsetIndexesByColumn = rsetIndexesByColumn;
         this.stmtIndexesByColumn = stmtIndexesByColumn;
@@ -153,6 +153,16 @@ public final class DbStatement {
 
     public String getSQL() {
         return sql;
+    }
+
+    public DbStatement extend(final String sql, final Object... args) {
+        return extend(sql, Arrays.asList(args));
+    }
+
+    public DbStatement extend(final String sql, final List<?> args) {
+        final List<Object> list = new ArrayList<>(this.args);
+        list.addAll(args);
+        return parse(raw + " " + sql, list);
     }
 
     public PreparedStatement prepareStatement(final Connection conn) throws SQLException {

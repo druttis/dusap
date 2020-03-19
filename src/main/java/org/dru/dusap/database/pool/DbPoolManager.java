@@ -1,6 +1,6 @@
 package org.dru.dusap.database.pool;
 
-import org.dru.dusap.database.config.DbClusterConfig;
+import org.dru.dusap.database.config.DbConfig;
 
 import java.util.List;
 
@@ -9,5 +9,5 @@ public interface DbPoolManager {
 
     DbPool getPool(String clusterName, final int shard);
 
-    void addConfig(DbClusterConfig config);
+    void addConfig(DbConfig config);
 }

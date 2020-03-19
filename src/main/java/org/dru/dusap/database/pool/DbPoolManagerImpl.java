@@ -1,6 +1,6 @@
 package org.dru.dusap.database.pool;
 
-import org.dru.dusap.database.config.DbClusterConfig;
+import org.dru.dusap.database.config.DbConfig;
 import org.dru.dusap.time.TimeSupplier;
 
 import java.util.Collections;
@@ -41,7 +41,7 @@ public final class DbPoolManagerImpl implements DbPoolManager {
     }
 
     @Override
-    public void addConfig(final DbClusterConfig config) {
+    public void addConfig(final DbConfig config) {
         final String clusterName = config.getName();
         poolsByClusterName.compute(clusterName, ($, pools) -> {
             if (pools != null) {

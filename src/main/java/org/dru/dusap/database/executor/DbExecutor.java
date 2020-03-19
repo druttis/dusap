@@ -7,9 +7,13 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 public interface DbExecutor {
-    <T> T query(int shard, ThrowingFunction<Connection, T, SQLException> command) throws SQLException;
+    <T> T invoke(ThrowingFunction<Connection, T, SQLException> command);
 
-    <T> T update(int shard, ThrowingFunction<Connection, T, SQLException> command) throws SQLException;
+    void execute(ThrowingConsumer<Connection, SQLException> command);
 
-    void execute(int shard, ThrowingConsumer<Connection, SQLException> command) throws SQLException;
+    void beginTransaction();
+
+    void commit();
+
+    void rollback();
 }

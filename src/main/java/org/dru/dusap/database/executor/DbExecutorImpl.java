@@ -1,88 +1,107 @@
 package org.dru.dusap.database.executor;
 
-import org.dru.dusap.database.pool.DbPoolManager;
+import org.dru.dusap.database.pool.DbPool;
 import org.dru.dusap.functional.ThrowingConsumer;
 import org.dru.dusap.functional.ThrowingFunction;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Objects;
 
 public final class DbExecutorImpl implements DbExecutor {
-    private final DbPoolManager poolManager;
-    private final String clusterName;
+    private static final ThreadLocal<Connection> threadConn = new ThreadLocal<>();
 
-    public DbExecutorImpl(final DbPoolManager poolManager, final String clusterName) {
-        this.poolManager = poolManager;
-        this.clusterName = clusterName;
+    private final DbPool dbPool;
+
+    public DbExecutorImpl(final DbPool dbPool) {
+        Objects.requireNonNull(dbPool, "dbPool");
+        this.dbPool = dbPool;
     }
 
     @Override
-    public <T> T query(final int shard, final ThrowingFunction<Connection, T, SQLException> command)
-            throws SQLException {
-        final Connection conn = acquire(shard);
+    public <T> T invoke(final ThrowingFunction<Connection, T, SQLException> command) {
         try {
-            return command.apply(conn);
-        } finally {
-            release(shard, conn);
-        }
-    }
-
-    @Override
-    public <T> T update(final int shard, final ThrowingFunction<Connection, T, SQLException> command)
-            throws SQLException {
-        final Connection conn = acquire(shard);
-        try {
-            final boolean autoCommit = conn.getAutoCommit();
             try {
-                // ensure auto-commit is off.
-                if (autoCommit) {
-                    conn.setAutoCommit(false);
-                }
-                // execute the update, commit and return the result.
-                final T result = command.apply(conn);
-                conn.commit();
-                return result;
-            } finally {
-                // restore auto-commit if needed.
-                if (autoCommit) {
-                    conn.setAutoCommit(true);
-                }
+                return command.apply(acquire());
+            } catch (final SQLException exc) {
+                throw new RuntimeException(exc);
             }
-        } catch (final Throwable exc) {
-            // rollback on any throwable
-            rollback(conn);
+        } catch (final RuntimeException exc) {
+            rollback();
             throw exc;
-        } finally {
-            release(shard, conn);
         }
     }
 
     @Override
-    public void execute(final int shard, final ThrowingConsumer<Connection, SQLException> command)
-            throws SQLException {
-        update(shard, (ThrowingFunction<Connection, Void, SQLException>) connection -> {
+    public final void execute(final ThrowingConsumer<Connection, SQLException> command) {
+        invoke((ThrowingFunction<Connection, Void, SQLException>) connection -> {
             command.accept(connection);
             return null;
         });
     }
 
-    private Connection acquire(final int shard) throws SQLException {
-        try {
-            return poolManager.getPool(clusterName, shard).acquire();
-        } catch (final InterruptedException exc) {
-            throw new SQLException("interrupted", exc);
+    @Override
+    public void beginTransaction() {
+        if (threadConn.get() == null) {
+            try {
+                final Connection conn = dbPool.acquire();
+                try {
+                    conn.setAutoCommit(false);
+                } catch (final SQLException exc) {
+                    throw new RuntimeException(exc);
+                }
+                threadConn.set(conn);
+            } catch (final InterruptedException exc) {
+                throw new RuntimeException(exc);
+            }
+        } else {
+            throw new IllegalStateException("already in transaction");
         }
     }
 
-    private void release(final int shard, final Connection conn) {
-        poolManager.getPool(clusterName, shard).release(conn);
+    @Override
+    public void commit() {
+        final Connection conn = threadConn.get();
+        if (conn != null) {
+            threadConn.remove();
+            try {
+                conn.commit();
+                conn.setAutoCommit(true);
+                dbPool.release(conn);
+            } catch (final SQLException exc) {
+                throw new RuntimeException(exc);
+            }
+        }
     }
 
-    private void rollback(final Connection connection) {
-        try {
-            connection.rollback();
-        } catch (final SQLException exc) {
-            // ignore
+    @Override
+    public void rollback() {
+        final Connection conn = threadConn.get();
+        if (conn != null) {
+            threadConn.remove();
+            try {
+                conn.rollback();
+                conn.setAutoCommit(true);
+                dbPool.release(conn);
+            } catch (final SQLException exc) {
+                throw new RuntimeException(exc);
+            }
         }
+    }
+
+    protected final DbPool getDbPool() {
+        return dbPool;
+    }
+
+    protected final Connection acquire() {
+        Connection conn = threadConn.get();
+        if (conn == null) {
+            try {
+                conn = dbPool.acquire();
+            } catch (final InterruptedException exc) {
+                throw new RuntimeException("interrupted", exc);
+            }
+        }
+        return conn;
     }
 }

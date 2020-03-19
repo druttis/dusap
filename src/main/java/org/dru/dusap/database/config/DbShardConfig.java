@@ -58,7 +58,7 @@ public final class DbShardConfig {
 
     @Override
     public String toString() {
-        return "ShardConfig{" +
+        return "DbShardConfig{" +
                 "driverClassName='" + driverClassName + '\'' +
                 ", url='" + url + '\'' +
                 ", user='" + user + '\'' +
