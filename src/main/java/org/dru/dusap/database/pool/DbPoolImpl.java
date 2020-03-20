@@ -1,6 +1,6 @@
 package org.dru.dusap.database.pool;
 
-import org.dru.dusap.database.config.DbShardConfig;
+import org.dru.dusap.database.config.DbBucketConfig;
 import org.dru.dusap.time.TimeSupplier;
 import org.dru.dusap.util.AbstractPool;
 
@@ -9,10 +9,10 @@ import java.util.Objects;
 import java.util.Properties;
 
 public final class DbPoolImpl extends AbstractPool<Connection> implements DbPool {
-    private final DbShardConfig config;
+    private final DbBucketConfig config;
 
     public DbPoolImpl(final TimeSupplier timeSupplier, final int minimumSize, final int maximumSize,
-                      final DbShardConfig config) {
+                      final DbBucketConfig config) {
         super(timeSupplier, minimumSize, maximumSize);
         this.config = Objects.requireNonNull(config, "config");
         finish();

@@ -8,18 +8,19 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class DistributedBucketStore<K, V> extends AbstractStore<K, V> {
+public final class DistributedStore<K, V> extends AbstractStore<K, V> {
     private final List<Bucket<K, V>> buckets;
 
-    public DistributedBucketStore() {
-        buckets = new ArrayList<>();
+    public DistributedStore(final List<Bucket<K, V>> buckets) {
+        this.buckets = buckets;
     }
 
     @Override
     protected Map<K, V> getAllImpl(final Set<K> keys) {
         final Map<K, BucketRow<K, V>> rows = selectAll(keys, false);
         final Map<K, V> result = new HashMap<>();
-        final Map<FromTo<K, V>, Map<K, Row<V>>> inconsistencies = new HashMap<>();
+        final Map<FromTo<K, V>, Map<K, Row<V>>> movers = new HashMap<>();
+        final Map<Bucket<K, V>, Map<K, Row<V>>> erasers = new HashMap<>();
         for (final K key : keys) {
             final BucketRow<K, V> row = rows.getOrDefault(key, BucketRow.create());
             if (row.value() != null) {
@@ -27,11 +28,28 @@ public final class DistributedBucketStore<K, V> extends AbstractStore<K, V> {
             }
             final Bucket<K, V> bucket = getBucket(key);
             if (bucket != row.bucket()) {
-                final FromTo<K, V> fromTo = new FromTo<>(row.bucket(), bucket);
-                inconsistencies.computeIfAbsent(fromTo, ($) -> new HashMap<>())
-                        .put(key, Row.create(row.value(), row.modified()));
+                if (row.bucket() != null) {
+                    final FromTo<K, V> fromTo = new FromTo<>(row.bucket(), bucket);
+                    movers.computeIfAbsent(fromTo, ($) -> new HashMap<>())
+                            .put(key, Row.create(row.value(), row.modified()));
+                } else {
+                    erasers.computeIfAbsent(bucket, ($) -> new HashMap<>())
+                            .put(key, Row.create(null, row.modified()));
+                }
             }
         }
+        movers.forEach((fromTo, map) -> {
+            final Bucket<K, V> ideal = fromTo.to;
+            ideal.begin();
+            map.forEach((key, row) -> ideal.upsert(key, row.value(), row.modified() + 1L));
+            ideal.commit();
+        });
+        erasers.forEach((bucket, map) -> {
+            bucket.begin();
+            map.forEach((key, row) -> bucket.delete(key, row.modified() + 1L));
+            bucket.commit();
+        });
+        //
         return result;
     }
 
@@ -58,6 +76,7 @@ public final class DistributedBucketStore<K, V> extends AbstractStore<K, V> {
                 } else if ((value == null && row.value() != null) || (value != null && !value.equals(row.value()))) {
                     bucket.update(key, value, row.modified() + 1L);
                 }
+
             }
             locked.forEach(Bucket::commit);
             return result;
@@ -75,6 +94,15 @@ public final class DistributedBucketStore<K, V> extends AbstractStore<K, V> {
         for (int bucketNum = 0; bucketNum < numBuckets; bucketNum++) {
             buckets.add(bucketProvider.apply(buckets.size()));
         }
+    }
+
+    public Map<Bucket<K, V>, Map<K, Long>> inspectAll(final Set<K> keys) {
+        final Map<K, BucketRow<K, V>> rows = selectAll(keys, false);
+        final Map<Bucket<K, V>, Map<K, Long>> result = new HashMap<>();
+        rows.forEach((key, row) ->
+                result.computeIfAbsent(row.bucket(), ($) -> new HashMap<>()).put(key, row.modified())
+        );
+        return result;
     }
 
     public Bucket<K, V> getBucket(final int bucketNum) {
@@ -204,7 +232,7 @@ public final class DistributedBucketStore<K, V> extends AbstractStore<K, V> {
         @Override
         public boolean equals(final Object o) {
             if (this == o) return true;
-            if (!(o instanceof DistributedBucketStore.FromTo)) return false;
+            if (!(o instanceof DistributedStore.FromTo)) return false;
             final FromTo<?, ?> that = (FromTo<?, ?>) o;
             return from.equals(that.from) &&
                     to.equals(that.to);

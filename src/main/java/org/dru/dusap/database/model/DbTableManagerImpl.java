@@ -15,8 +15,8 @@ public final class DbTableManagerImpl implements DbTableManager {
     }
 
     @Override
-    public void createTableIfNotExist(final DbExecutor executor, final int shard, final DbTable<?> table) {
-        if (visited.add(new Entry(executor, shard))) {
+    public void createTableIfNotExist(final DbExecutor executor, final int bucketNum, final DbTable<?> table) {
+        if (visited.add(new Entry(executor, bucketNum))) {
             executor.execute(connection -> {
                 final String ddl = table.accept(DDLEntityVisitor.INSTANCE, null);
                 try (final PreparedStatement stmt = connection.prepareStatement(ddl)) {
@@ -40,8 +40,7 @@ public final class DbTableManagerImpl implements DbTableManager {
             if (this == o) return true;
             if (!(o instanceof Entry)) return false;
             final Entry entry = (Entry) o;
-            return shard == entry.shard &&
-                    executor.equals(entry.executor);
+            return shard == entry.shard && executor.equals(entry.executor);
         }
 
         @Override

@@ -2,6 +2,8 @@ package org.dru.dusap.injection.internal;
 
 import org.dru.dusap.injection.Module;
 import org.dru.dusap.injection.ModuleUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
@@ -10,7 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class Context {
+public final class InjectorContext {
+    private static final Logger logger = LoggerFactory.getLogger(InjectorContext.class);
     public static InjectorImpl configureInjector(final InjectorImpl injector, final Class<? extends Module> module) {
         final Module instance = injector.newInstance(module, false);
         final ConfiguratorImpl configurator = new ConfiguratorImpl(injector);
@@ -23,7 +26,7 @@ public final class Context {
 
     private final Map<Class<? extends Module>, InjectorImpl> injectorByModule;
 
-    public Context() {
+    public InjectorContext() {
         injectorByModule = new ConcurrentHashMap<>();
     }
 
@@ -37,6 +40,8 @@ public final class Context {
         if (injector == null) {
             final List<Class<? extends Module>> dependencies = ModuleUtils.getDependencies(module);
             traverseModules(dependencies);
+            logger.info("configuring {} with dependencies {}", module.getSimpleName(),
+                    dependencies.stream().map(Class::getSimpleName).collect(Collectors.joining(", ")));
             injector = configureInjector(new InjectorImpl(this, null, module, dependencies), module);
             injectorByModule.put(module, injector);
         }

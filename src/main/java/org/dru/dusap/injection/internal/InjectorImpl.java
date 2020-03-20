@@ -18,13 +18,13 @@ import java.util.stream.Stream;
 final class InjectorImpl implements Injector {
     private static final Logger logger = LoggerFactory.getLogger(Injector.class);
 
-    private final Context context;
+    private final InjectorContext context;
     private final InjectorImpl parent;
     private final Class<? extends Module> module;
     private final List<Class<? extends Module>> dependencies;
     private final Map<Key<?>, BindingImpl<?>> bindingByKey;
 
-    InjectorImpl(final Context context, final InjectorImpl parent, final Class<? extends Module> module,
+    InjectorImpl(final InjectorContext context, final InjectorImpl parent, final Class<? extends Module> module,
                  final List<Class<? extends Module>> dependencies) {
         this.context = context;
         this.parent = parent;
@@ -47,7 +47,7 @@ final class InjectorImpl implements Injector {
             throw new IllegalArgumentException("specified module can not be annotated with @DependsOn: "
                     + module.getName());
         }
-        return Context.configureInjector(new InjectorImpl(null, this, module, Collections.emptyList()), module);
+        return InjectorContext.configureInjector(new InjectorImpl(null, this, module, Collections.emptyList()), module);
     }
 
     @Override
@@ -114,7 +114,7 @@ final class InjectorImpl implements Injector {
         injectMethods(instance);
     }
 
-    Context getContext() {
+    InjectorContext getContext() {
         return context;
     }
 

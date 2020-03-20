@@ -8,18 +8,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class DbExecutorManagerImpl implements DbExecutorManager {
     private final DbPoolManager dbPoolManager;
-    private final Map<NameAndShardNum, DbExecutor> executorByNameAndShardNum;
+    private final Map<Key, DbExecutor> executorByKey;
 
     public DbExecutorManagerImpl(final DbPoolManager dbPoolManager) {
         this.dbPoolManager = dbPoolManager;
-        executorByNameAndShardNum = new ConcurrentHashMap<>();
+        executorByKey = new ConcurrentHashMap<>();
     }
 
     @Override
-    public DbExecutor getExecutor(final String name, final int shardNum) {
-        final NameAndShardNum nameAndShardNum = new NameAndShardNum(name, shardNum);
-        return executorByNameAndShardNum.computeIfAbsent(nameAndShardNum, $ ->
-                new DbExecutorImpl(dbPoolManager.getPool(name, shardNum)));
+    public DbExecutor getExecutor(final String name, final int bucketNum) {
+        final Key key = new Key(name, bucketNum);
+        return executorByKey.computeIfAbsent(key, $ -> new DbExecutorImpl(dbPoolManager.getPool(name, bucketNum)));
     }
 
     @Override
@@ -27,14 +26,14 @@ public final class DbExecutorManagerImpl implements DbExecutorManager {
         return getExecutor(name, 0);
     }
 
-    private static final class NameAndShardNum {
+    private static final class Key {
         private final String name;
         private final int shardNum;
 
-        private NameAndShardNum(final String name, final int shardNum) {
+        private Key(final String name, final int shardNum) {
             Objects.requireNonNull(name, "name");
             if (shardNum < 0) {
-                throw new IllegalArgumentException("negative shardNum: " + shardNum);
+                throw new IllegalArgumentException("negative bucketNum: " + shardNum);
             }
             this.name = name;
             this.shardNum = shardNum;
@@ -43,8 +42,8 @@ public final class DbExecutorManagerImpl implements DbExecutorManager {
         @Override
         public boolean equals(final Object o) {
             if (this == o) return true;
-            if (!(o instanceof NameAndShardNum)) return false;
-            final NameAndShardNum that = (NameAndShardNum) o;
+            if (!(o instanceof Key)) return false;
+            final Key that = (Key) o;
             return shardNum == that.shardNum &&
                     name.equals(that.name);
         }

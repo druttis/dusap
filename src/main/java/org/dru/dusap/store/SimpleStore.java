@@ -2,17 +2,15 @@ package org.dru.dusap.store;
 
 import org.dru.dusap.reflection.ReflectionUtils;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiFunction;
 
-public final class SingleBucketStore<K, V> extends AbstractStore<K, V> {
-    private final Bucket<K, V> shard;
+public final class SimpleStore<K, V> extends AbstractStore<K, V> {
+    private final Bucket<K, V> bucket;
 
-    public SingleBucketStore(final Bucket<K, V> shard) {
-        this.shard = shard;
+    public SimpleStore(final Bucket<K, V> bucket) {
+        Objects.requireNonNull(bucket, "bucket");
+        this.bucket = bucket;
     }
 
     @Override
@@ -20,7 +18,7 @@ public final class SingleBucketStore<K, V> extends AbstractStore<K, V> {
         if (keys.isEmpty()) {
             return Collections.emptyMap();
         }
-        final Map<K, Row<V>> rows = shard.select(keys, false);
+        final Map<K, Row<V>> rows = bucket.select(keys, false);
         final Map<K, V> result = new HashMap<>();
         for (final K key : keys) {
             final Row<V> row = rows.get(key);
@@ -37,9 +35,9 @@ public final class SingleBucketStore<K, V> extends AbstractStore<K, V> {
             return Collections.emptyMap();
         }
         final Map<K, V> result = new HashMap<>();
-        shard.begin();
+        bucket.begin();
         try {
-            final Map<K, Row<V>> rows = shard.select(keys, true);
+            final Map<K, Row<V>> rows = bucket.select(keys, true);
             for (final K key : keys) {
                 final Row<V> row = rows.getOrDefault(key, Row.create());
                 final V oldValue = row.value();
@@ -47,15 +45,15 @@ public final class SingleBucketStore<K, V> extends AbstractStore<K, V> {
                 if (newValue != null) {
                     result.put(key, newValue);
                     if (!newValue.equals(oldValue)) {
-                        shard.update(key, newValue, row.modified() + 1);
+                        bucket.upsert(key, newValue, row.modified() + 1);
                     }
                 } else if (oldValue != null) {
-                    shard.delete(key, row.modified() + 1);
+                    bucket.delete(key, row.modified() + 1);
                 }
             }
-            shard.commit();
+            bucket.commit();
         } catch (final Exception exc) {
-            shard.rollback();
+            bucket.rollback();
             throw exc;
         }
         return result;

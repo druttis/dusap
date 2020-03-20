@@ -14,6 +14,6 @@ public abstract class AbstractBucket<K, V> implements Bucket<K, V> {
 
     @Override
     public String toString() {
-        return getClass().getName() + "#" + num;
+        return getClass().getSimpleName() + "#" + num;
     }
 }

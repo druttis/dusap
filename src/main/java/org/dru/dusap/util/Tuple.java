@@ -2,7 +2,7 @@ package org.dru.dusap.util;
 
 import java.util.Objects;
 
-public final class Tuple<L, R> {
+public class Tuple<L, R> {
     private L left;
     private R right;
 

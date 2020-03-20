@@ -50,7 +50,8 @@ public final class DbBucketSupport<K, V> {
             return Collections.emptyMap();
         } else if (keys.size() == 1) {
             final K key = keys.iterator().next();
-            return Collections.singletonMap(key, select(dbExecutor, key, lock));
+            final Row<V> row = select(dbExecutor, key, lock);
+            return (row != null ? Collections.singletonMap(key, row) : Collections.emptyMap());
         } else {
             return dbExecutor.invoke(conn -> {
                 final StringBuilder sb = new StringBuilder("SELECT %r,%r,%r FROM %n WHERE %n IN (%L) LIMIT %d");
@@ -68,10 +69,8 @@ public final class DbBucketSupport<K, V> {
                             final K key = dbSelectAll.getResult(rset, dbKey);
                             final V value = dbSelectAll.getResult(rset, dbValue);
                             final long modified = dbSelectAll.getResult(rset, dbModified);
-                            if (value != null) {
-                                if (rows.put(key, Row.create(value, modified)) != null) {
-                                    throw new IllegalStateException("duplicate key: " + key + "(1+)");
-                                }
+                            if (rows.put(key, Row.create(value, modified)) != null) {
+                                throw new IllegalStateException("duplicate key: " + key + " (1+)");
                             }
                         }
                         return rows;
@@ -138,7 +137,7 @@ public final class DbBucketSupport<K, V> {
                     final V value = dbStatement.getResult(rset, dbValue);
                     final long modified = dbStatement.getResult(rset, dbModified);
                     if (rset.next()) {
-                        throw new IllegalStateException("duplicate key: " + key + "(1+)");
+                        throw new IllegalStateException("duplicate key: " + key + " (1+)");
                     }
                     return Row.create(value, modified);
                 }

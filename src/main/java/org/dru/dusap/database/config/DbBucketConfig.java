@@ -3,15 +3,15 @@ package org.dru.dusap.database.config;
 import java.util.Objects;
 import java.util.Properties;
 
-public final class DbShardConfig {
+public final class DbBucketConfig {
     private String driverClassName;
     private String url;
     private String user;
     private String password;
     private Properties properties;
 
-    public DbShardConfig(final String driverClassName, final String url, final String user, final String password,
-                         final Properties properties) {
+    public DbBucketConfig(final String driverClassName, final String url, final String user, final String password,
+                          final Properties properties) {
         this.driverClassName = Objects.requireNonNull(driverClassName, "driverClassName");
         this.url = Objects.requireNonNull(url, "url");
         this.user = user;
@@ -42,8 +42,8 @@ public final class DbShardConfig {
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
-        if (!(o instanceof DbShardConfig)) return false;
-        final DbShardConfig that = (DbShardConfig) o;
+        if (!(o instanceof DbBucketConfig)) return false;
+        final DbBucketConfig that = (DbBucketConfig) o;
         return getDriverClassName().equals(that.getDriverClassName()) &&
                 getUrl().equals(that.getUrl()) &&
                 Objects.equals(getUser(), that.getUser()) &&

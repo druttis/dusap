@@ -9,50 +9,54 @@ import java.util.Objects;
 
 public final class DbConfig {
     private String name;
-    private int minimumConnectionsPerShard;
-    private int maximumConnectionsPerShard;
-    private DbShardConfig[] shardConfigs;
+    private int minConnectionsPerBucket;
+    private int maxConnectionsPerBucket;
+    private DbBucketConfig[] bucketConfigs;
 
     public DbConfig(final String name,
-                    final int minimumConnectionsPerShard, final int maximumConnectionPerShard,
-                    final DbShardConfig[] shardConfigs) {
+                    final int minConnectionsPerBucket, final int maxConnectionPerShard,
+                    final DbBucketConfig[] bucketConfigs) {
         Objects.requireNonNull(name, "name");
-        Objects.requireNonNull(shardConfigs, "shardConfigs");
-        if (shardConfigs.length == 0) {
-            throw new IllegalArgumentException("at least one shardConfig is required");
+        Objects.requireNonNull(bucketConfigs, "bucketConfigs");
+        if (bucketConfigs.length == 0) {
+            throw new IllegalArgumentException("at least one bucketConfig is required");
         }
         this.name = name;
-        this.minimumConnectionsPerShard = minimumConnectionsPerShard;
-        this.maximumConnectionsPerShard = maximumConnectionPerShard;
-        this.shardConfigs = shardConfigs;
+        this.minConnectionsPerBucket = minConnectionsPerBucket;
+        this.maxConnectionsPerBucket = maxConnectionPerShard;
+        this.bucketConfigs = bucketConfigs;
     }
 
     public DbConfig(final String name,
-                    final int minimumConnectionsPerShard, final int maximumConnectionPerShard,
-                    final Collection<DbShardConfig> shardConfigs) {
-        this(name, minimumConnectionsPerShard, maximumConnectionPerShard, shardConfigs.toArray(new DbShardConfig[0]));
+                    final int minConnectionsPerBucket, final int maximumConnectionPerShard,
+                    final Collection<DbBucketConfig> bucketConfigs) {
+        this(name, minConnectionsPerBucket, maximumConnectionPerShard, bucketConfigs.toArray(new DbBucketConfig[0]));
     }
 
     public DbConfig(final String name,
-                    final int minimumConnectionsPerShard, final int maximumConnectionPerShard,
-                    final DbShardConfig first, final DbShardConfig... rest) {
-        this(name, minimumConnectionsPerShard, maximumConnectionPerShard, CollectionUtils.asList(first, rest));
+                    final int minConnectionsPerBucket, final int maximumConnectionPerShard,
+                    final DbBucketConfig first, final DbBucketConfig... rest) {
+        this(name, minConnectionsPerBucket, maximumConnectionPerShard, CollectionUtils.asList(first, rest));
     }
 
     public String getName() {
         return name;
     }
 
-    public int getMinimumConnectionsPerShard() {
-        return minimumConnectionsPerShard;
+    public int getMinConnectionsPerBucket() {
+        return minConnectionsPerBucket;
     }
 
-    public int getMaximumConnectionsPerShard() {
-        return maximumConnectionsPerShard;
+    public int getMaxConnectionsPerBucket() {
+        return maxConnectionsPerBucket;
     }
 
-    public List<DbShardConfig> getShardConfigs() {
-        return Arrays.asList(shardConfigs);
+    public int getNumBuckets() {
+        return bucketConfigs.length;
+    }
+
+    public List<DbBucketConfig> getBucketConfigs() {
+        return Arrays.asList(bucketConfigs);
     }
 
     @Override
@@ -61,13 +65,13 @@ public final class DbConfig {
         if (!(o instanceof DbConfig)) return false;
         final DbConfig that = (DbConfig) o;
         return name.equals(that.name) &&
-                Arrays.equals(shardConfigs, shardConfigs);
+                Arrays.equals(bucketConfigs, bucketConfigs);
     }
 
     @Override
     public int hashCode() {
         int result = Objects.hash(name);
-        result = 31 * result + Arrays.hashCode(shardConfigs);
+        result = 31 * result + Arrays.hashCode(bucketConfigs);
         return result;
     }
 
@@ -75,7 +79,7 @@ public final class DbConfig {
     public String toString() {
         return "DbConfig{" +
                 "name='" + name + '\'' +
-                ", shardConfigs=" + Arrays.toString(shardConfigs) +
+                ", shardConfigs=" + Arrays.toString(bucketConfigs) +
                 '}';
     }
 }
