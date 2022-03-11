@@ -1,6 +1,6 @@
 package org.dru.dusap.inject.binder;
 
-import org.dru.dusap.util.AnnotationBuilder;
+import org.dru.dusap.annotation.AnnotationBuilder;
 
 import java.lang.annotation.Annotation;
 

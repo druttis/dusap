@@ -4,7 +4,7 @@ import org.dru.dusap.inject.*;
 import org.dru.dusap.inject.binder.LinkedScopeBindingBuilder;
 import org.dru.dusap.inject.binder.ReferenceBindingBuilder;
 import org.dru.dusap.inject.provider.ValueProvider;
-import org.dru.dusap.util.Annotations;
+import org.dru.dusap.annotation.Annotations;
 import org.dru.dusap.util.TypeLiteral;
 
 import javax.inject.Provider;
@@ -13,6 +13,8 @@ import java.lang.annotation.Annotation;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+
+import static org.dru.dusap.inject.Keys.key;
 
 public final class ScopeBindingNode<A extends Annotation, T extends ScopeHandler<A>>
         implements Node, LinkedScopeBindingBuilder<A, T> {
@@ -53,12 +55,12 @@ public final class ScopeBindingNode<A extends Annotation, T extends ScopeHandler
 
     @Override
     public BuilderSupplier<T> toBinding(final Key<T> key) {
-        return toBinding(KeyBuilder.of(key));
+        return toBinding(key.builder());
     }
 
     @Override
     public ReferenceBindingBuilder<T> toBinding(final TypeLiteral<T> typeLiteral) {
-        return toBinding(KeyBuilder.of(typeLiteral));
+        return toBinding(key(typeLiteral));
     }
 
     @Override

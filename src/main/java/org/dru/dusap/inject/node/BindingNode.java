@@ -7,7 +7,7 @@ import org.dru.dusap.inject.binder.ReferenceBindingBuilder;
 import org.dru.dusap.inject.binder.ScopedBindingBuilder;
 import org.dru.dusap.inject.provider.ConstructProvider;
 import org.dru.dusap.inject.provider.ValueProvider;
-import org.dru.dusap.util.AnnotationBuilder;
+import org.dru.dusap.annotation.AnnotationBuilder;
 import org.dru.dusap.util.TypeLiteral;
 
 import javax.inject.Provider;
@@ -19,8 +19,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-import static org.dru.dusap.util.Annotations.annotation;
-import static org.dru.dusap.util.Annotations.requireAnnotatedWith;
+import static org.dru.dusap.annotation.Annotations.annotation;
+import static org.dru.dusap.annotation.Annotations.requireAnnotatedWith;
+import static org.dru.dusap.inject.Keys.key;
 
 public final class BindingNode<T> implements Node, QualifiedBindingBuilder<T> {
     private final KeyBuilder<T> keyBuilder;
@@ -101,12 +102,13 @@ public final class BindingNode<T> implements Node, QualifiedBindingBuilder<T> {
 
     @Override
     public <U extends T> BuilderSupplier<U> toBinding(final Key<U> key) {
-        return toBinding(KeyBuilder.of(key));
+        Objects.requireNonNull(key, "key");
+        return toBinding(key.builder());
     }
 
     @Override
     public <U extends T> ReferenceBindingBuilder<U> toBinding(final TypeLiteral<U> typeLiteral) {
-        return toBinding(KeyBuilder.of(typeLiteral));
+        return toBinding(key(typeLiteral));
     }
 
     @Override

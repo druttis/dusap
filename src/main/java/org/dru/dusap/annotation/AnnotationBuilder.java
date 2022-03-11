@@ -1,4 +1,8 @@
-package org.dru.dusap.util;
+package org.dru.dusap.annotation;
+
+import org.dru.dusap.util.Builder;
+import org.dru.dusap.reflection.ReflectionException;
+import org.dru.dusap.reflection.Reflections;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -22,11 +26,11 @@ public final class AnnotationBuilder<A extends Annotation> implements Builder<A>
 
     @Override
     public A build() {
-        ReflectionUtils.getDeclaredMethods(annotationType)
+        Reflections.getDeclaredMethods(annotationType)
                 .filter(method -> !members.containsKey(method))
                 .filter(method -> method.getDefaultValue() != null)
                 .forEach(method -> members.put(method, method.getDefaultValue()));
-        final Set<String> missing = ReflectionUtils.getDeclaredMethods(annotationType)
+        final Set<String> missing = Reflections.getDeclaredMethods(annotationType)
                 .filter(method -> !members.containsKey(method))
                 .map(Method::getName)
                 .collect(Collectors.toSet());

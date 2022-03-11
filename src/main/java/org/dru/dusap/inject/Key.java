@@ -2,44 +2,19 @@ package org.dru.dusap.inject;
 
 import org.dru.dusap.util.TypeLiteral;
 
-import javax.inject.Qualifier;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.*;
 
-import static org.dru.dusap.util.ReflectionUtils.getAnnotatedAnnotations;
+import static org.dru.dusap.inject.Keys.key;
 
 public final class Key<T> {
-    public static Key<?> of(final Field field) {
-        Objects.requireNonNull(field, "field");
-        final KeyBuilder<?> keyBuilder = KeyBuilder.of(field.getGenericType());
-        getAnnotatedAnnotations(field, Qualifier.class).forEach(keyBuilder::with);
-        return keyBuilder.build();
-    }
-
-    public static Key<?> of(final Method method) {
-        Objects.requireNonNull(method, "method");
-        final KeyBuilder<?> keyBuilder = KeyBuilder.of(method.getGenericReturnType());
-        getAnnotatedAnnotations(method, Qualifier.class).forEach(keyBuilder::with);
-        return keyBuilder.build();
-    }
-
-    public static Key<?> of(final Parameter parameter) {
-        Objects.requireNonNull(parameter, "parameter");
-        final KeyBuilder<?> keyBuilder = KeyBuilder.of(parameter.getParameterizedType());
-        getAnnotatedAnnotations(parameter, Qualifier.class).forEach(keyBuilder::with);
-        return keyBuilder.build();
-    }
-
-    private final TypeLiteral<T> type;
+    private final TypeLiteral<T> typeLiteral;
     private final Set<? extends Annotation> qualifiers;
 
-    Key(final TypeLiteral<T> type, final Collection<? extends Annotation> qualifiers) {
-        Objects.requireNonNull(type, "type");
+    Key(final TypeLiteral<T> typeLiteral, final Collection<? extends Annotation> qualifiers) {
+        Objects.requireNonNull(typeLiteral, "typeLiteral");
         Objects.requireNonNull(qualifiers, "qualifiers");
-        this.type = type;
+        this.typeLiteral = typeLiteral;
         this.qualifiers = Collections.unmodifiableSet(new HashSet<>(qualifiers));
     }
 
@@ -48,27 +23,33 @@ public final class Key<T> {
         if (this == o) return true;
         if (!(o instanceof Key<?>)) return false;
         final Key<?> key = (Key<?>) o;
-        return type.equals(key.type) && qualifiers.equals(key.qualifiers);
+        return typeLiteral.equals(key.typeLiteral) && qualifiers.equals(key.qualifiers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, qualifiers);
+        return Objects.hash(typeLiteral, qualifiers);
     }
 
     @Override
     public String toString() {
         return "Key{" +
-                "type=" + type +
+                "typeLiteral=" + typeLiteral +
                 ", qualifiers=" + qualifiers +
                 '}';
     }
 
-    public TypeLiteral<T> getType() {
-        return type;
+    public TypeLiteral<T> typeLiteral() {
+        return typeLiteral;
     }
 
-    public Set<? extends Annotation> getQualifiers() {
+    public Set<? extends Annotation> qualifiers() {
         return qualifiers;
+    }
+
+    public KeyBuilder<T> builder() {
+        final KeyBuilder<T> keyBuilder = key(typeLiteral());
+        qualifiers().forEach(keyBuilder::with);
+        return keyBuilder;
     }
 }

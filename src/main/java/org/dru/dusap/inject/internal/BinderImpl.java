@@ -3,7 +3,6 @@ package org.dru.dusap.inject.internal;
 import org.dru.dusap.inject.*;
 import org.dru.dusap.inject.node.BindingNode;
 import org.dru.dusap.inject.node.ScopeBindingNode;
-import org.dru.dusap.util.ReflectionUtils;
 import org.dru.dusap.util.TypeLiteral;
 
 import javax.inject.Singleton;
@@ -11,6 +10,8 @@ import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import static org.dru.dusap.inject.Keys.key;
 
 public final class BinderImpl implements Binder {
     private final InjectorImpl injector;
@@ -42,12 +43,13 @@ public final class BinderImpl implements Binder {
 
     @Override
     public <T> BindingNode<T> bind(final Key<T> key) {
-        return bind(KeyBuilder.of(key));
+        Objects.requireNonNull(key, "key");
+        return bind(key.builder());
     }
 
     @Override
     public <T> BindingNode<T> bind(final TypeLiteral<T> typeLiteral) {
-        return bind(KeyBuilder.of(typeLiteral));
+        return bind(key(typeLiteral));
     }
 
     @Override

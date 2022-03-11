@@ -5,6 +5,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
 import java.util.Objects;
 
+import static org.dru.dusap.inject.Keys.key;
+
 public final class Query<T> {
     public static <T> Query<T> of(final Key<T> key) {
         return new Query<>(key, null);
@@ -25,11 +27,11 @@ public final class Query<T> {
     }
 
     public static Query<?> of(final Field field) {
-        return of(Key.of(field), field);
+        return of(key(field), field);
     }
 
     public static Query<?> of(final Parameter parameter) {
-        return of(Key.of(parameter), parameter);
+        return of(key(parameter), parameter);
     }
 
     private final Key<T> key;

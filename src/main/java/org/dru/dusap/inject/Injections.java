@@ -1,16 +1,16 @@
 package org.dru.dusap.inject;
 
-import org.dru.dusap.util.ReflectionUtils;
+import org.dru.dusap.reflection.Reflections;
 
 import javax.inject.Inject;
 import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public final class InjectionUtils {
+public final class Injections {
     public static <T> Constructor<T> getInjectableConstructor(Class<T> type) {
         final List<Constructor<T>> constructors
-                = ReflectionUtils.getDeclaredConstructors(type).collect(Collectors.toList());
+                = Reflections.getDeclaredConstructors(type).collect(Collectors.toList());
         if (constructors.isEmpty()) {
             throw new InjectionException("No constructor found: " + type.getName());
         }
@@ -47,7 +47,7 @@ public final class InjectionUtils {
         final Set<Class<? extends Module>> visited = new HashSet<>();
         getAllModules(module, visited);
         final List<Class<? extends Module>> dependencyModules = new ArrayList<>(visited);
-        dependencyModules.sort(InjectionUtils::compareModuleTopology);
+        dependencyModules.sort(Injections::compareModuleTopology);
         return dependencyModules;
     }
 
@@ -96,6 +96,6 @@ public final class InjectionUtils {
         }
     }
 
-    private InjectionUtils() {
+    private Injections() {
     }
 }

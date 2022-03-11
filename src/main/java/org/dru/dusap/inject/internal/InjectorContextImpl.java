@@ -2,15 +2,16 @@ package org.dru.dusap.inject.internal;
 
 import org.dru.dusap.inject.*;
 import org.dru.dusap.inject.provider.ProvidesProvider;
-import org.dru.dusap.util.ReflectionUtils;
+import org.dru.dusap.reflection.Reflections;
 
 import javax.inject.Scope;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.dru.dusap.inject.InjectionUtils.getAllModules;
-import static org.dru.dusap.inject.InjectionUtils.getDependencies;
-import static org.dru.dusap.util.ReflectionUtils.getDeclaredMethods;
+import static org.dru.dusap.inject.Injections.getAllModules;
+import static org.dru.dusap.inject.Injections.getDependencies;
+import static org.dru.dusap.inject.Keys.key;
+import static org.dru.dusap.reflection.Reflections.getDeclaredMethods;
 
 public final class InjectorContextImpl implements InjectorContext {
     private final Map<Class<? extends Module>, InjectorImpl> injectors;
@@ -59,12 +60,12 @@ public final class InjectorContextImpl implements InjectorContext {
             getDeclaredMethods(module)
                     .filter(method -> method.isAnnotationPresent(Provides.class))
                     .forEach(method -> {
-                        final Key<?> key = Key.of(method);
+                        final Key<?> key = key(method);
                         injector.bind(new BindingImpl<>(
                                 key,
                                 method.isAnnotationPresent(Expose.class),
-                                new ProvidesProvider<>(instance, method, injector),
-                                ReflectionUtils.getAnnotatedAnnotationOrNull(method, Scope.class),
+                                new ProvidesProvider<>(method, instance, injector),
+                                Reflections.getOneAnnotationAnnotatedWithOrNull(method, Scope.class),
                                 injector));
                     });
             // Inject methods

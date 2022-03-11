@@ -3,7 +3,7 @@ package org.dru.dusap.inject.internal;
 import org.dru.dusap.inject.Binding;
 import org.dru.dusap.inject.Injector;
 import org.dru.dusap.inject.Key;
-import org.dru.dusap.util.LazyReference;
+import org.dru.dusap.reference.LazyReference;
 
 import javax.inject.Provider;
 import java.lang.annotation.Annotation;

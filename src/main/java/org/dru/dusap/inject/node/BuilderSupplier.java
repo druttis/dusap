@@ -6,7 +6,7 @@ import org.dru.dusap.inject.Module;
 import org.dru.dusap.inject.Query;
 import org.dru.dusap.inject.binder.ReferenceBindingBuilder;
 import org.dru.dusap.inject.provider.QueryProvider;
-import org.dru.dusap.util.AnnotationBuilder;
+import org.dru.dusap.annotation.AnnotationBuilder;
 
 import javax.inject.Provider;
 import javax.inject.Qualifier;
@@ -15,8 +15,8 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-import static org.dru.dusap.util.Annotations.annotation;
-import static org.dru.dusap.util.Annotations.requireAnnotatedWith;
+import static org.dru.dusap.annotation.Annotations.annotation;
+import static org.dru.dusap.annotation.Annotations.requireAnnotatedWith;
 
 final class BuilderSupplier<T> implements ReferenceBindingBuilder<T>, Supplier<Provider<T>> {
     private final KeyBuilder<T> keyBuilder;

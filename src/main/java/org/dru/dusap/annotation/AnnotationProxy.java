@@ -1,4 +1,7 @@
-package org.dru.dusap.util;
+package org.dru.dusap.annotation;
+
+import org.dru.dusap.reflection.ReflectionException;
+import org.dru.dusap.reflection.Reflections;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
@@ -13,7 +16,7 @@ public final class AnnotationProxy extends HashMap<Method, Object> implements An
     AnnotationProxy(final Class<? extends Annotation> annotationType, final Map<? extends Method, ?> m) {
         super(m);
         this.annotationType = annotationType;
-        hashCode = ReflectionUtils.hashCode(annotationType, this);
+        hashCode = Reflections.hashCode(annotationType, this);
     }
 
     @Override
@@ -32,11 +35,11 @@ public final class AnnotationProxy extends HashMap<Method, Object> implements An
             case "annotationType":
                 return annotationType;
             case "toString":
-                return ReflectionUtils.toString(annotationType, this);
+                return Reflections.toString(annotationType, this);
             case "hashCode":
                 return hashCode;
             case "equals":
-                return ReflectionUtils.equals(annotationType, this, args[0]);
+                return Reflections.equals(annotationType, this, args[0]);
             default:
                 throw new ReflectionException("No such method: " + name);
         }

@@ -1,4 +1,4 @@
-package org.dru.dusap.util;
+package org.dru.dusap.annotation;
 
 import java.lang.annotation.Annotation;
 import java.util.Objects;

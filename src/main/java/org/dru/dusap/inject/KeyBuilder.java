@@ -5,36 +5,17 @@ import org.dru.dusap.util.TypeLiteral;
 
 import javax.inject.Qualifier;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.dru.dusap.util.Annotations.annotation;
+import static org.dru.dusap.annotation.Annotations.annotation;
 
 public final class KeyBuilder<T> implements Builder<Key<T>> {
-    public static <T> KeyBuilder<T> of(final Key<T> key) {
-        final KeyBuilder<T> keyBuilder = new KeyBuilder<>(key.getType());
-        key.getQualifiers().forEach(keyBuilder::with);
-        return keyBuilder;
-    }
-
-    public static <T> KeyBuilder<T> of(final TypeLiteral<T> type) {
-        return new KeyBuilder<>(type);
-    }
-
-    public static <T> KeyBuilder<T> of(final Class<T> type) {
-        return of(TypeLiteral.of(type));
-    }
-
-    public static KeyBuilder<?> of(final Type type) {
-        return of(TypeLiteral.of(type));
-    }
-
     private final TypeLiteral<T> type;
     private final Map<Class<? extends Annotation>, Annotation> qualifiers;
 
-    private KeyBuilder(final TypeLiteral<T> type) {
+    KeyBuilder(final TypeLiteral<T> type) {
         this.type = type;
         qualifiers = new ConcurrentHashMap<>();
     }

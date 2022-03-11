@@ -1,4 +1,4 @@
-package org.dru.dusap.util;
+package org.dru.dusap.reflection;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 import static java.util.Arrays.deepEquals;
 import static java.util.Arrays.deepHashCode;
 
-public final class ReflectionUtils {
+public final class Reflections {
     @SuppressWarnings("unchecked")
     public static <T> Stream<Constructor<T>> getDeclaredConstructors(final Class<T> type) {
         Objects.requireNonNull(type, "type");
@@ -144,20 +144,20 @@ public final class ReflectionUtils {
         return Stream.of(element.getAnnotations());
     }
 
-    public static Stream<? extends Annotation> getAnnotatedAnnotations(
-            final AnnotatedElement element, final Class<? extends Annotation> annotationType) {
-        Objects.requireNonNull(annotationType, "annotationType");
+    public static Stream<? extends Annotation> getAnnotationsAnnotatedWith(
+            final AnnotatedElement element, final Class<? extends Annotation> annotationWithType) {
+        Objects.requireNonNull(annotationWithType, "annotationWithType");
         return getAnnotations(element)
-                .filter(annotation -> annotation.annotationType().isAnnotationPresent(annotationType));
+                .filter(annotation -> annotation.annotationType().isAnnotationPresent(annotationWithType));
     }
 
-    public static Annotation getAnnotatedAnnotationOrNull(
-            final AnnotatedElement element, final Class<? extends Annotation> annotationType) {
-        Objects.requireNonNull(annotationType, "annotationType");
-        final List<? extends Annotation> annotations = getAnnotatedAnnotations(element, annotationType)
+    public static Annotation getOneAnnotationAnnotatedWithOrNull(
+            final AnnotatedElement element, final Class<? extends Annotation> annotationWithType) {
+        Objects.requireNonNull(annotationWithType, "annotationWithType");
+        final List<? extends Annotation> annotations = getAnnotationsAnnotatedWith(element, annotationWithType)
                 .collect(Collectors.toList());
         if (annotations.size() > 1) {
-            throw new IllegalArgumentException("Multiple " + annotationType.getName() + " annotated annotations:" +
+            throw new IllegalArgumentException("Multiple " + annotationWithType.getName() + " annotated annotations:" +
                     element.getClass());
         }
         return annotations.isEmpty() ? null : annotations.get(0);
@@ -216,6 +216,6 @@ public final class ReflectionUtils {
         return Stream.of(value).toArray();
     }
 
-    private ReflectionUtils() {
+    private Reflections() {
     }
 }

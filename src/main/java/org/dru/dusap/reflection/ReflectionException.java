@@ -1,4 +1,4 @@
-package org.dru.dusap.util;
+package org.dru.dusap.reflection;
 
 public class ReflectionException extends RuntimeException {
     public ReflectionException() {

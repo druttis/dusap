@@ -2,8 +2,8 @@ package org.dru.dusap.inject.internal;
 
 import org.dru.dusap.inject.Key;
 import org.dru.dusap.inject.ScopeHandler;
-import org.dru.dusap.util.LazyReference;
-import org.dru.dusap.util.Reference;
+import org.dru.dusap.reference.LazyReference;
+import org.dru.dusap.reference.Reference;
 
 import javax.inject.Provider;
 import javax.inject.Singleton;

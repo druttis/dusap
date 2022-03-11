@@ -1,9 +1,9 @@
 package org.dru.dusap.inject.internal;
 
 import org.dru.dusap.inject.*;
-import org.dru.dusap.util.Annotations;
+import org.dru.dusap.annotation.Annotations;
 import org.dru.dusap.util.Builder;
-import org.dru.dusap.util.ReflectionUtils;
+import org.dru.dusap.reflection.Reflections;
 import org.dru.dusap.util.TypeLiteral;
 
 import javax.inject.Inject;
@@ -18,8 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Collections.unmodifiableSet;
-import static org.dru.dusap.inject.InjectionUtils.getInjectableConstructor;
-import static org.dru.dusap.util.ReflectionUtils.*;
+import static org.dru.dusap.inject.Injections.getInjectableConstructor;
+import static org.dru.dusap.inject.Keys.key;
+import static org.dru.dusap.reflection.Reflections.*;
 
 public class InjectorImpl implements Injector {
     private static final ScopeHandler<Annotation> NO_SCOPE_HANDLER = new ScopeHandler<Annotation>() {
@@ -146,7 +147,7 @@ public class InjectorImpl implements Injector {
 
     @Override
     public <T> T getInstance(final TypeLiteral<T> typeLiteral) {
-        return getInstance(KeyBuilder.of(typeLiteral));
+        return getInstance(key(typeLiteral));
     }
 
     @Override
@@ -156,7 +157,7 @@ public class InjectorImpl implements Injector {
 
     @Override
     public <T> T newInstance(final Constructor<T> constructor, final boolean injectMembers) {
-        final T instance = ReflectionUtils
+        final T instance = Reflections
                 .newInstance(constructor, getParameters(constructor).map(Query::of).map(this::getInstance));
         if (injectMembers) {
             injectMethods(instance);

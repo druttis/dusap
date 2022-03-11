@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.dru.dusap.json.AbstractJsonSerializer;
 import org.dru.dusap.json.JsonException;
 
@@ -17,7 +16,6 @@ import java.io.*;
 
 public class JacksonJsonSerializer extends AbstractJsonSerializer<JsonNode> {
     private final ObjectMapper mapper;
-    private final JsonNodeFactory factory;
     private final JacksonJson undefinedJson;
     private final JacksonJson nullJson;
 
@@ -30,7 +28,6 @@ public class JacksonJsonSerializer extends AbstractJsonSerializer<JsonNode> {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, false);
         mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, false);
-        factory = new JsonNodeFactory(true);
         undefinedJson = new JacksonJson(this, undefinedRaw());
         nullJson = new JacksonJson(this, nullRaw());
     }

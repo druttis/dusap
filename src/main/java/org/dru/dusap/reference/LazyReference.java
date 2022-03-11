@@ -1,4 +1,6 @@
-package org.dru.dusap.util;
+package org.dru.dusap.reference;
+
+import org.dru.dusap.util.Resettable;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
