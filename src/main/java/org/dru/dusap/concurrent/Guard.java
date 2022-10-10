@@ -3,7 +3,7 @@ package org.dru.dusap.concurrent;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Supplier;
 
-public final class LockUtils {
+public final class Guard {
     public static <T> T lock(final Lock lock, final Supplier<? extends T> task) {
         lock.lock();
         try {
@@ -35,12 +35,12 @@ public final class LockUtils {
         }
     }
 
-    public static void tryLock(final Lock lock, final Runnable successor, final Runnable backup) {
-        if (!tryLock(lock, successor)) {
+    public static void tryLock(final Lock lock, final Runnable task, final Runnable backup) {
+        if (!tryLock(lock, task)) {
             backup.run();
         }
     }
 
-    private LockUtils() {
+    private Guard() {
     }
 }

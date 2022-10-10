@@ -4,6 +4,8 @@ import java.util.Map;
 import java.util.Set;
 
 public interface Cache<K, V> {
+    int checksum();
+
     V get(K key);
 
     Map<K, V> getAll(Set<K> keys);
@@ -23,6 +25,8 @@ public interface Cache<K, V> {
     void remove(K key, V value);
 
     void removeAll(Map<K, V> map);
+
+    void retainAll(Set<K> keys);
 
     void clear();
 }
