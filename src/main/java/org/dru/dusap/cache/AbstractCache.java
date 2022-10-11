@@ -4,9 +4,6 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 
 public abstract class AbstractCache<K, V> implements Cache<K, V> {
-    public AbstractCache() {
-    }
-
     @Override
     public final V get(final K key) {
         return getAll(singleton(key)).get(key);

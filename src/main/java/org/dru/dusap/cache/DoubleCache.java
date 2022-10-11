@@ -1,7 +1,4 @@
-package org.dru.dusap.cache.lru;
-
-import org.dru.dusap.cache.AbstractCache;
-import org.dru.dusap.cache.Cache;
+package org.dru.dusap.cache;
 
 import java.util.HashSet;
 import java.util.Map;

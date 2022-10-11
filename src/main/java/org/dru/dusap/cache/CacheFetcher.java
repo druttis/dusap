@@ -8,10 +8,10 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.singleton;
 
-public interface CacheMissHandler<K, V> {
-    static <K, V> CacheMissHandler<K, V> cache(final Cache<K, V> cache) {
+public interface CacheFetcher<K, V> {
+    static <K, V> CacheFetcher<K, V> cache(final Cache<K, V> cache) {
         Objects.requireNonNull(cache, "cache");
-        return new CacheMissHandler<K, V>() {
+        return new CacheFetcher<K, V>() {
             @Override
             public Map<K, V> fetchAll(final Set<K> keys) {
                 return cache.getAll(keys);

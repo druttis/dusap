@@ -1,10 +1,9 @@
 package org.dru.dusap.cache.lru;
 
-import org.dru.dusap.cache.CacheMissHandler;
+import org.dru.dusap.cache.CacheFetcher;
 import org.dru.dusap.time.TimeProvider;
 
 import java.time.Duration;
-import java.util.Objects;
 
 public final class LruCacheFactoryImpl implements LruCacheFactory {
     private final TimeProvider timeProvider;
@@ -14,12 +13,14 @@ public final class LruCacheFactoryImpl implements LruCacheFactory {
     }
 
     @Override
-    public <K, V> LruCache<K, V> getCache(final Duration timeToLive, final CacheMissHandler<K, V> missHandler) {
-        Objects.requireNonNull(timeToLive, "timeToLive");
-        if (timeToLive.isNegative()) {
-            throw new IllegalArgumentException("Negative timeToLive: " + timeToLive);
-        }
-        Objects.requireNonNull(missHandler, "missHandler");
-        return new LruCache<>(timeToLive, missHandler, timeProvider);
+    public <K, V> SmartLruCache<K, V> getSmartLruCache(final Duration timeToLive,
+                                                       final CacheFetcher<K, V> missHandler) {
+        return new SmartLruCache<>(missHandler, timeToLive, timeProvider);
+    }
+
+    @Override
+    public <K, V> NaiveLruCache<K, V> getNaiveLruCache(final Duration timeToLive,
+                                                       final CacheFetcher<K, V> missHandler) {
+        return new NaiveLruCache<>(missHandler, timeToLive, timeProvider);
     }
 }
