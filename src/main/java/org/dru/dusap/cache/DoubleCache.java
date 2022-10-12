@@ -1,11 +1,10 @@
 package org.dru.dusap.cache;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public final class DoubleCache<K, V> extends AbstractCache<K, V> {
+public final class DoubleCache<K, V> implements Cache<K, V> {
     private final Cache<K, V> primary;
     private final Cache<K, V> secondary;
 
@@ -17,8 +16,13 @@ public final class DoubleCache<K, V> extends AbstractCache<K, V> {
     }
 
     @Override
-    public int checksum() {
-        return primary.checksum();
+    public Map<K, V> peekAll() {
+        return primary.peekAll();
+    }
+
+    @Override
+    public Map<K, V> peekAll(final Set<K> keys) {
+        return primary.peekAll(keys);
     }
 
     @Override
@@ -27,22 +31,15 @@ public final class DoubleCache<K, V> extends AbstractCache<K, V> {
     }
 
     @Override
-    public Map<K, V> peekAll(final Set<K> keys) {
-        final Set<K> local = new HashSet<>(keys);
-        final Map<K, V> result = primary.peekAll(local);
-        local.removeAll(result.keySet());
-        if (!local.isEmpty()) {
-            final Map<K, V> fetched = secondary.peekAll(local);
-            primary.putAll(fetched);
-            result.putAll(fetched);
-        }
-        return result;
-    }
-
-    @Override
     public void putAll(final Map<K, V> map) {
         primary.putAll(map);
         secondary.putAll(map);
+    }
+
+    @Override
+    public void updateAll(final Map<K, CacheUpdate<V>> map) {
+        primary.updateAll(map);
+        secondary.updateAll(map);
     }
 
     @Override
@@ -67,13 +64,5 @@ public final class DoubleCache<K, V> extends AbstractCache<K, V> {
     public void clear() {
         primary.clear();
         secondary.clear();
-    }
-
-    @Override
-    public String toString() {
-        return "DoubleCache{" +
-                "primary=" + primary +
-                ", secondary=" + secondary +
-                '}';
     }
 }

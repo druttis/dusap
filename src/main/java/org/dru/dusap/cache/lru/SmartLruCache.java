@@ -17,7 +17,7 @@ final class SmartLruCache<K, V> extends AbstractLruCache<K, V> {
     }
 
     @Override
-    protected Map<K, V> getAllInternal(final Set<K> keys) {
+    public Map<K, V> getAll(final Set<K> keys) {
         // Get stored keys.
         final Map<K, V> result = peekAll(keys);
         final Set<K> missingKeys = missingKeys(result.keySet(), keys);

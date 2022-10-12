@@ -1,17 +1,14 @@
 package org.dru.dusap.cache.lru;
 
+import org.dru.dusap.cache.CacheUpdate;
 import org.dru.dusap.cache.FetchingCache;
 import org.dru.dusap.cache.CacheEntry;
 import org.dru.dusap.cache.CacheFetcher;
-import org.dru.dusap.concurrent.Guard;
 import org.dru.dusap.time.TimeProvider;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.stream.Collectors.toSet;
 
@@ -37,21 +34,13 @@ public abstract class AbstractLruCache<K, V> extends FetchingCache<K, V> {
         entries = new HashMap<>();
     }
 
-    public final Duration getTimeToLive() {
-        return timeToLive;
-    }
-
-    public final void cleanup() {
-        Guard.lock(writeLock(), this::cleanupInternal);
+    @Override
+    protected Map<K, V> peekAllImpl() {
+        return peekAllImpl(new HashSet<>(entries.keySet()));
     }
 
     @Override
-    protected final int checksumInternal() {
-        return entries.keySet().hashCode();
-    }
-
-    @Override
-    protected final Map<K, V> peekAllInternal(final Set<K> keys) {
+    protected final Map<K, V> peekAllImpl(final Set<K> keys) {
         final Instant now = now();
         final Map<K, V> result = new HashMap<>();
         for (final K key : keys) {
@@ -65,7 +54,7 @@ public abstract class AbstractLruCache<K, V> extends FetchingCache<K, V> {
     }
 
     @Override
-    protected final void putAllInternal(final Map<K, V> map) {
+    protected final void putAllImpl(final Map<K, V> map) {
         final Instant now = now();
         map.forEach((key, value) -> {
             if (value != null) {
@@ -77,30 +66,54 @@ public abstract class AbstractLruCache<K, V> extends FetchingCache<K, V> {
     }
 
     @Override
-    protected void removeAllInternal(final Set<K> keys) {
+    protected final void updateAllImpl(final Map<K, CacheUpdate<V>> map) {
+        final Instant now = now();
+        map.forEach((key, update) -> {
+            if (!Objects.equals(update.getOldValue(), update.getNewValue())) {
+                entries.compute(key, ($, entry) -> {
+                    V value = (entry != null ? entry.getValue() : null);
+                    if (Objects.equals(value, update.getOldValue())) {
+                        entry = new CacheEntry<>(update.getNewValue(), now.plus(getTimeToLive()));
+                    }
+                    return entry;
+                });
+            }
+        });
+    }
+
+    @Override
+    protected final void removeAllImpl(final Set<K> keys) {
         entries.keySet().removeAll(keys);
     }
 
     @Override
-    protected void removeAllInternal(final Map<K, V> map) {
+    protected final void removeAllImpl(final Map<K, V> map) {
         map.forEach(entries::remove);
     }
 
     @Override
-    protected void retainAllInternal(final Set<K> keys) {
+    protected final void retainAllImpl(final Set<K> keys) {
         entries.keySet().retainAll(keys);
     }
 
     @Override
-    protected void clearInternal() {
+    protected final void clearImpl() {
         entries.clear();
+    }
+
+    public final Duration getTimeToLive() {
+        return timeToLive;
+    }
+
+    public final void cleanup() {
+        write(this::cleanupImpl);
     }
 
     protected final Instant now() {
         return timeProvider.getCurrentTime();
     }
 
-    private void cleanupInternal() {
+    private void cleanupImpl() {
         final Instant now = now();
         entries.values().removeIf(entry -> entry.hasExpired(now));
     }
