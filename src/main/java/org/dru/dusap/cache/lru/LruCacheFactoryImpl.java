@@ -13,14 +13,12 @@ public final class LruCacheFactoryImpl implements LruCacheFactory {
     }
 
     @Override
-    public <K, V> SmartLruCache<K, V> getSmartLruCache(final Duration timeToLive,
-                                                       final CacheFetcher<K, V> missHandler) {
-        return new SmartLruCache<>(missHandler, timeToLive, timeProvider);
+    public <K, V> SmartLruCache<K, V> getSmartLruCache(final CacheFetcher<K, V> fetcher, final Duration timeToLive) {
+        return new SmartLruCache<>(fetcher, timeToLive, timeProvider);
     }
 
     @Override
-    public <K, V> NaiveLruCache<K, V> getNaiveLruCache(final Duration timeToLive,
-                                                       final CacheFetcher<K, V> missHandler) {
-        return new NaiveLruCache<>(missHandler, timeToLive, timeProvider);
+    public <K, V> NaiveLruCache<K, V> getNaiveLruCache(final CacheFetcher<K, V> fetcher, final Duration timeToLive) {
+        return new NaiveLruCache<>(fetcher, timeToLive, timeProvider);
     }
 }
