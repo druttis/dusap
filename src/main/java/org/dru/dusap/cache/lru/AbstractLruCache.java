@@ -6,13 +6,14 @@ import org.dru.dusap.cache.CacheEntry;
 import org.dru.dusap.cache.CacheFetcher;
 import org.dru.dusap.time.TimeProvider;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
 import static java.util.stream.Collectors.toSet;
 
-public abstract class AbstractLruCache<K, V> extends FetchingCache<K, V> {
+public abstract class AbstractLruCache<K extends Serializable, V extends Serializable> extends FetchingCache<K, V> {
     protected static <K> Set<K> missingKeys(final Set<K> source, final Set<K> keys) {
         return keys.stream().filter(key -> !source.contains(key)).collect(toSet());
     }

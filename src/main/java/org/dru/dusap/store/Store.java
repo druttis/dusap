@@ -1,11 +1,12 @@
 package org.dru.dusap.store;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
-public interface Store<K, V> {
-    Map<K, V> getAll(int limit, int page);
+public interface Store<K extends Serializable, V extends Serializable> {
+    Set<K> getKeys(int limit, int page);
 
     V get(K key);
 

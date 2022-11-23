@@ -11,13 +11,13 @@ import java.util.Map;
 import java.util.Set;
 
 public interface Injector {
-    Class<? extends Module> getModule();
+    Class<? extends InjectorModule> getModule();
 
-    Set<Class<? extends Module>> getDependencies();
+    Set<Class<? extends InjectorModule>> getDependencies();
 
-    Injector getDependency(Class<? extends Module> module);
+    Injector getDependency(Class<? extends InjectorModule> module);
 
-    Set<Class<? extends Module>> getDependents();
+    Set<Class<? extends InjectorModule>> getDependents();
 
     InjectorContext getContext();
 
@@ -27,7 +27,7 @@ public interface Injector {
 
     <S extends Annotation> ScopeHandler<S> getScopeHandler(S scope);
 
-    <T> T getInstance(Query<T> query);
+    <T> T getInstance(InjectorQuery<T> query);
 
     <T> T getInstance(Key<T> key);
 

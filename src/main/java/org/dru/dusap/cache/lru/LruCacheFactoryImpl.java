@@ -3,6 +3,7 @@ package org.dru.dusap.cache.lru;
 import org.dru.dusap.cache.CacheFetcher;
 import org.dru.dusap.time.TimeProvider;
 
+import java.io.Serializable;
 import java.time.Duration;
 
 public final class LruCacheFactoryImpl implements LruCacheFactory {
@@ -13,12 +14,14 @@ public final class LruCacheFactoryImpl implements LruCacheFactory {
     }
 
     @Override
-    public <K, V> SmartLruCache<K, V> getSmartLruCache(final CacheFetcher<K, V> fetcher, final Duration timeToLive) {
+    public <K extends Serializable, V extends Serializable> SmartLruCache<K, V> getSmartLruCache(
+            final CacheFetcher<K, V> fetcher, final Duration timeToLive) {
         return new SmartLruCache<>(fetcher, timeToLive, timeProvider);
     }
 
     @Override
-    public <K, V> NaiveLruCache<K, V> getNaiveLruCache(final CacheFetcher<K, V> fetcher, final Duration timeToLive) {
+    public <K extends Serializable, V extends Serializable> NaiveLruCache<K, V> getNaiveLruCache(
+            final CacheFetcher<K, V> fetcher, final Duration timeToLive) {
         return new NaiveLruCache<>(fetcher, timeToLive, timeProvider);
     }
 }

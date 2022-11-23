@@ -1,7 +1,7 @@
 package org.dru.dusap.inject.binder;
 
-import org.dru.dusap.inject.Module;
+import org.dru.dusap.inject.InjectorModule;
 
 public interface ForeignBindingBuilder {
-    void from(Class<? extends Module> source);
+    void from(Class<? extends InjectorModule> source);
 }

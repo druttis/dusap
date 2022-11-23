@@ -1,12 +1,12 @@
 package org.dru.dusap.conf;
 
 import org.dru.dusap.inject.Expose;
-import org.dru.dusap.inject.Module;
+import org.dru.dusap.inject.InjectorModule;
 import org.dru.dusap.inject.Provides;
 
 import javax.inject.Singleton;
 
-public final class ConfModule implements Module {
+public final class ConfModule implements InjectorModule {
     @Provides
     @Singleton
     @Expose

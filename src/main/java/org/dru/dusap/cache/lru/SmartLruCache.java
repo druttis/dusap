@@ -3,10 +3,11 @@ package org.dru.dusap.cache.lru;
 import org.dru.dusap.cache.CacheFetcher;
 import org.dru.dusap.time.TimeProvider;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.*;
 
-final class SmartLruCache<K, V> extends AbstractLruCache<K, V> {
+final class SmartLruCache<K extends Serializable, V extends Serializable> extends AbstractLruCache<K, V> {
     private final Object monitor;
     private final Set<K> pendingKeys;
 

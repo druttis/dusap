@@ -1,6 +1,8 @@
 package org.dru.dusap.cache;
 
-public final class CacheUpdate<V> {
+import java.io.Serializable;
+
+public final class CacheUpdate<V extends Serializable> {
     private final V oldValue;
     private final V newValue;
 

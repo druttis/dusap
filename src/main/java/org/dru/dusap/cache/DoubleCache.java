@@ -1,10 +1,11 @@
 package org.dru.dusap.cache;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public final class DoubleCache<K, V> implements Cache<K, V> {
+public final class DoubleCache<K extends Serializable, V extends Serializable> implements Cache<K, V> {
     private final Cache<K, V> primary;
     private final Cache<K, V> secondary;
 
@@ -64,5 +65,13 @@ public final class DoubleCache<K, V> implements Cache<K, V> {
     public void clear() {
         primary.clear();
         secondary.clear();
+    }
+
+    @Override
+    public String toString() {
+        return "DoubleCache{" +
+                "primary=" + primary +
+                ", secondary=" + secondary +
+                '}';
     }
 }

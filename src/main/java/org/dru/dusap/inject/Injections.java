@@ -28,12 +28,12 @@ public final class Injections {
                 + type.getName());
     }
 
-    public static Set<Class<? extends Module>> getDependencies(final Class<? extends Module> module) {
+    public static Set<Class<? extends InjectorModule>> getDependencies(final Class<? extends InjectorModule> module) {
         Objects.requireNonNull(module, "module");
-        final Set<Class<? extends Module>> dependencies = new HashSet<>();
+        final Set<Class<? extends InjectorModule>> dependencies = new HashSet<>();
         final DependsOn dependsOn = module.getAnnotation(DependsOn.class);
         if (dependsOn != null) {
-            for (final Class<? extends Module> dependency : dependsOn.value()) {
+            for (final Class<? extends InjectorModule> dependency : dependsOn.value()) {
                 if (!dependencies.add(dependency)) {
                     throw new IllegalArgumentException("Duplicate dependency '" + dependency.getName()
                             + "': module=" + module.getName());
@@ -43,20 +43,20 @@ public final class Injections {
         return dependencies;
     }
 
-    public static List<Class<? extends Module>> getAllModules(final Class<? extends Module> module) {
-        final Set<Class<? extends Module>> visited = new HashSet<>();
+    public static List<Class<? extends InjectorModule>> getAllModules(final Class<? extends InjectorModule> module) {
+        final Set<Class<? extends InjectorModule>> visited = new HashSet<>();
         getAllModules(module, visited);
-        final List<Class<? extends Module>> dependencyModules = new ArrayList<>(visited);
+        final List<Class<? extends InjectorModule>> dependencyModules = new ArrayList<>(visited);
         dependencyModules.sort(Injections::compareModuleTopology);
         return dependencyModules;
     }
 
-    public static void checkNoCircularity(final Class<? extends Module> module) {
+    public static void checkNoCircularity(final Class<? extends InjectorModule> module) {
         checkNoCircularity(module, new HashSet<>(), module);
     }
 
-    private static void getAllModules(final Class<? extends Module> module,
-                                      final Set<Class<? extends Module>> visited) {
+    private static void getAllModules(final Class<? extends InjectorModule> module,
+                                      final Set<Class<? extends InjectorModule>> visited) {
         if (visited.add(module)) {
             checkNoCircularity(module);
             getDependencies(module)
@@ -64,31 +64,31 @@ public final class Injections {
         }
     }
 
-    private static int compareModuleTopology(final Class<? extends Module> m1, final Class<? extends Module> m2) {
+    private static int compareModuleTopology(final Class<? extends InjectorModule> m1, final Class<? extends InjectorModule> m2) {
         final int t1 = getModuleTopology(m1);
         final int t2 = getModuleTopology(m2);
         return Integer.compare(t1, t2);
     }
 
-    private static int getModuleTopology(final Class<? extends Module> module) {
+    private static int getModuleTopology(final Class<? extends InjectorModule> module) {
         return getModuleTopology(module, new HashSet<>(), 0);
     }
 
-    private static int getModuleTopology(final Class<? extends Module> module,
-                                         final Set<Class<? extends Module>> visited, final int current) {
+    private static int getModuleTopology(final Class<? extends InjectorModule> module,
+                                         final Set<Class<? extends InjectorModule>> visited, final int current) {
         int result = current;
         if (visited.add(module)) {
-            for (final Class<? extends Module> dependencyModule : getDependencies(module)) {
+            for (final Class<? extends InjectorModule> dependencyModule : getDependencies(module)) {
                 result = Math.max(result, getModuleTopology(dependencyModule, visited, current + 1));
             }
         }
         return result;
     }
 
-    private static void checkNoCircularity(final Class<? extends Module> module, final Set<Object> visited,
-                                           final Class<? extends Module> bang) {
+    private static void checkNoCircularity(final Class<? extends InjectorModule> module, final Set<Object> visited,
+                                           final Class<? extends InjectorModule> bang) {
         if (visited.add(module)) {
-            final Set<Class<? extends Module>> dependencyModules = getDependencies(module);
+            final Set<Class<? extends InjectorModule>> dependencyModules = getDependencies(module);
             if (dependencyModules.contains(bang)) {
                 throw new IllegalArgumentException("Circular dependency graph: " + bang);
             }

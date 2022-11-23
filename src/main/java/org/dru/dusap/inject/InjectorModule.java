@@ -1,6 +1,6 @@
 package org.dru.dusap.inject;
 
-public interface Module {
+public interface InjectorModule {
     default void configure(Binder binder) {
     }
 }

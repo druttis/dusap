@@ -3,12 +3,13 @@ package org.dru.dusap.json;
 import org.dru.dusap.conf.Conf;
 import org.dru.dusap.conf.ConfModule;
 import org.dru.dusap.inject.*;
+import org.dru.dusap.inject.InjectorModule;
 
 import javax.inject.Singleton;
 import javax.naming.ConfigurationException;
 
 @DependsOn(ConfModule.class)
-public final class JsonModule implements Module {
+public final class JsonModule implements InjectorModule {
     private static final String SERIALIZE_CLASSNAME_KEY = "json.serializer.className";
     private static final String DEFAULT_SERIALIZER_CLASSNAME = "org.dru.dusap.json.jackson.JacksonJsonSerializer";
 

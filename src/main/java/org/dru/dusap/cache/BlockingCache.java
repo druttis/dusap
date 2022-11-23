@@ -2,12 +2,13 @@ package org.dru.dusap.cache;
 
 import org.dru.dusap.concurrent.Guard;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 
-public abstract class BlockingCache<K, V> implements Cache<K, V> {
+public abstract class BlockingCache<K extends Serializable, V extends Serializable> implements Cache<K, V> {
     private final Guard guard;
 
     public BlockingCache() {

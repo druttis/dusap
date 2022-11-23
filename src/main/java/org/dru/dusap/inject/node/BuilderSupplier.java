@@ -2,8 +2,8 @@ package org.dru.dusap.inject.node;
 
 import org.dru.dusap.inject.Injector;
 import org.dru.dusap.inject.KeyBuilder;
-import org.dru.dusap.inject.Module;
-import org.dru.dusap.inject.Query;
+import org.dru.dusap.inject.InjectorModule;
+import org.dru.dusap.inject.InjectorQuery;
 import org.dru.dusap.inject.binder.ReferenceBindingBuilder;
 import org.dru.dusap.inject.provider.QueryProvider;
 import org.dru.dusap.annotation.AnnotationBuilder;
@@ -21,7 +21,7 @@ import static org.dru.dusap.annotation.Annotations.requireAnnotatedWith;
 final class BuilderSupplier<T> implements ReferenceBindingBuilder<T>, Supplier<Provider<T>> {
     private final KeyBuilder<T> keyBuilder;
     private final Injector injector;
-    private final AtomicReference<Class<? extends Module>> fromRef;
+    private final AtomicReference<Class<? extends InjectorModule>> fromRef;
 
     BuilderSupplier(final KeyBuilder<T> keyBuilder, final Injector injector) {
         Objects.requireNonNull(keyBuilder, "keyBuilder");
@@ -32,7 +32,7 @@ final class BuilderSupplier<T> implements ReferenceBindingBuilder<T>, Supplier<P
     }
 
     @Override
-    public void from(final Class<? extends Module> source) {
+    public void from(final Class<? extends InjectorModule> source) {
         Objects.requireNonNull(source, "source");
         if (!fromRef.compareAndSet(injector.getModule(), source)) {
             throw new IllegalStateException("From already set");
@@ -61,6 +61,6 @@ final class BuilderSupplier<T> implements ReferenceBindingBuilder<T>, Supplier<P
 
     @Override
     public Provider<T> get() {
-        return new QueryProvider<>(injector, Query.of(keyBuilder.build(), fromRef.get()));
+        return new QueryProvider<>(injector, InjectorQuery.of(keyBuilder.build(), fromRef.get()));
     }
 }

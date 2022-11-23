@@ -3,11 +3,12 @@ package org.dru.dusap.cache.lru;
 import org.dru.dusap.cache.CacheFetcher;
 import org.dru.dusap.time.TimeProvider;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 
-final class NaiveLruCache<K, V> extends AbstractLruCache<K, V> {
+final class NaiveLruCache<K extends Serializable, V extends Serializable> extends AbstractLruCache<K, V> {
     NaiveLruCache(final CacheFetcher<K, V> fetcher, final Duration timeToLive, final TimeProvider timeProvider) {
         super(fetcher, timeToLive, timeProvider);
     }

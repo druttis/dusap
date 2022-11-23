@@ -1,12 +1,13 @@
 package org.dru.dusap.cache;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 
-public interface Cache<K, V> {
+public interface Cache<K extends Serializable, V extends Serializable> {
     Map<K, V> peekAll();
 
     Map<K, V> peekAll(Set<K> keys);

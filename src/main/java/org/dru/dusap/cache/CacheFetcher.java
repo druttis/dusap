@@ -1,5 +1,6 @@
 package org.dru.dusap.cache;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -8,8 +9,8 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.singleton;
 
-public interface CacheFetcher<K, V> {
-    static <K, V> CacheFetcher<K, V> cache(final Cache<K, V> cache) {
+public interface CacheFetcher<K extends Serializable, V extends Serializable> {
+    static <K extends Serializable, V extends Serializable> CacheFetcher<K, V> cache(final Cache<K, V> cache) {
         Objects.requireNonNull(cache, "cache");
         return new CacheFetcher<K, V>() {
             @Override

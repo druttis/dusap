@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
-public final class CacheEntry<V> implements Serializable {
+public final class CacheEntry<V extends Serializable> implements Serializable {
     private final V value;
     private final Instant expires;
 

@@ -1,6 +1,7 @@
 package org.dru.dusap.inject.internal;
 
 import org.dru.dusap.inject.*;
+import org.dru.dusap.inject.InjectorModule;
 import org.dru.dusap.inject.provider.ProvidesProvider;
 import org.dru.dusap.reflection.Reflections;
 
@@ -14,14 +15,14 @@ import static org.dru.dusap.inject.Keys.key;
 import static org.dru.dusap.reflection.Reflections.getDeclaredMethods;
 
 public final class InjectorContextImpl implements InjectorContext {
-    private final Map<Class<? extends Module>, InjectorImpl> injectors;
+    private final Map<Class<? extends InjectorModule>, InjectorImpl> injectors;
 
     public InjectorContextImpl() {
         injectors = new ConcurrentHashMap<>();
     }
 
     @Override
-    public InjectorImpl getInjector(final Class<? extends Module> module) {
+    public InjectorImpl getInjector(final Class<? extends InjectorModule> module) {
         Objects.requireNonNull(module, "module");
         final InjectorImpl injector = injectors.get(module);
         if (injector == null) {
@@ -30,26 +31,26 @@ public final class InjectorContextImpl implements InjectorContext {
         return injector;
     }
 
-    public InjectorImpl createInjector(final Class<? extends Module> module) {
+    public InjectorImpl createInjector(final Class<? extends InjectorModule> module) {
         Objects.requireNonNull(module, "module");
         createInjectors(getAllModules(module));
         return getInjector(module);
     }
 
-    private void createInjectors(final List<Class<? extends Module>> modules) {
-        final Map<Class<? extends Module>, Module> instances = new HashMap<>();
-        for (final Class<? extends Module> module : modules) {
-            final Set<Class<? extends Module>> dependencies = getDependencies(module);
+    private void createInjectors(final List<Class<? extends InjectorModule>> modules) {
+        final Map<Class<? extends InjectorModule>, InjectorModule> instances = new HashMap<>();
+        for (final Class<? extends InjectorModule> module : modules) {
+            final Set<Class<? extends InjectorModule>> dependencies = getDependencies(module);
             final InjectorImpl injector = new InjectorImpl(module, dependencies, this);
             injectors.put(module, injector);
-            final Module instance = injector.newInstance(module, false);
+            final InjectorModule instance = injector.newInstance(module, false);
             instances.put(module, instance);
             dependencies.stream().map(this::getInjector)
                     .forEach(dependency -> dependency.addDependent(module));
         }
-        for (final Class<? extends Module> module : modules) {
+        for (final Class<? extends InjectorModule> module : modules) {
             final InjectorImpl injector = getInjector(module);
-            final Module instance = instances.get(module);
+            final InjectorModule instance = instances.get(module);
             // Inject fields
             injector.injectFields(instance);
             // Configure

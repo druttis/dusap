@@ -10,5 +10,5 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 @Target({FIELD, PARAMETER})
 public @interface Source {
-    Class<? extends Module> value();
+    Class<? extends InjectorModule> value();
 }

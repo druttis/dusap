@@ -2,16 +2,14 @@ package org.dru.dusap.store;
 
 import org.dru.dusap.concurrent.Guard;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.io.Serializable;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.UnaryOperator;
 
-import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 
-public final class InMemoryStore<K, V> implements Store<K, V> {
+public final class InMemoryStore<K extends Serializable, V extends Serializable> implements Store<K, V> {
     private final Map<K, V> entries;
     private final Guard guard;
 
@@ -21,7 +19,7 @@ public final class InMemoryStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public Map<K, V> getAll(final int limit, final int page) {
+    public Set<K> getKeys(final int limit, final int page) {
         if (limit < 0) {
             throw new IllegalArgumentException("Negative limit: " + limit);
         }
@@ -29,18 +27,17 @@ public final class InMemoryStore<K, V> implements Store<K, V> {
             throw new IllegalArgumentException("Negative page: " + page);
         }
         if (limit == 0) {
-            return emptyMap();
+            return emptySet();
         }
         final int skip = limit * page;
         return guard.read(() -> {
-            final Map<K, V> result = new HashMap<>();
-            final Iterator<Map.Entry<K, V>> it = entries.entrySet().iterator();
+            final Set<K> result = new HashSet<>();
+            final Iterator<K> it = entries.keySet().iterator();
             for (int i = 0; it.hasNext() && i < skip; i++) {
                 it.next();
             }
             for (int i = 0; it.hasNext() && i < limit; i++) {
-                final Map.Entry<K, V> entry = it.next();
-                result.put(entry.getKey(), entry.getValue());
+                result.add(it.next());
             }
             return result;
         });

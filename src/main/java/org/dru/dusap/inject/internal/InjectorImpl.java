@@ -2,6 +2,7 @@ package org.dru.dusap.inject.internal;
 
 import org.dru.dusap.inject.*;
 import org.dru.dusap.annotation.Annotations;
+import org.dru.dusap.inject.InjectorModule;
 import org.dru.dusap.util.Builder;
 import org.dru.dusap.reflection.Reflections;
 import org.dru.dusap.util.TypeLiteral;
@@ -31,14 +32,14 @@ public class InjectorImpl implements Injector {
         }
     };
 
-    private final Class<? extends Module> module;
-    private final Set<Class<? extends Module>> dependencies;
-    private final Set<Class<? extends Module>> dependents;
+    private final Class<? extends InjectorModule> module;
+    private final Set<Class<? extends InjectorModule>> dependencies;
+    private final Set<Class<? extends InjectorModule>> dependents;
     private final InjectorContextImpl injectorContext;
     private final Map<Class<? extends Annotation>, ScopeBinding<?>> localScopeBindings;
     private final Map<Key<?>, Binding<?>> localBindings;
 
-    public InjectorImpl(final Class<? extends Module> module, final Set<Class<? extends Module>> dependencies,
+    public InjectorImpl(final Class<? extends InjectorModule> module, final Set<Class<? extends InjectorModule>> dependencies,
                         final InjectorContextImpl injectorContext) {
         Objects.requireNonNull(module, "module");
         Objects.requireNonNull(injectorContext, "injection");
@@ -51,17 +52,17 @@ public class InjectorImpl implements Injector {
     }
 
     @Override
-    public Class<? extends Module> getModule() {
+    public Class<? extends InjectorModule> getModule() {
         return module;
     }
 
     @Override
-    public Set<Class<? extends Module>> getDependencies() {
+    public Set<Class<? extends InjectorModule>> getDependencies() {
         return dependencies;
     }
 
     @Override
-    public InjectorImpl getDependency(final Class<? extends Module> module) {
+    public InjectorImpl getDependency(final Class<? extends InjectorModule> module) {
         Objects.requireNonNull(module, "module");
         if (!dependencies.contains(module)) {
             throw new IllegalArgumentException("Not a dependency: " + module.getName());
@@ -70,7 +71,7 @@ public class InjectorImpl implements Injector {
     }
 
     @Override
-    public Set<Class<? extends Module>> getDependents() {
+    public Set<Class<? extends InjectorModule>> getDependents() {
         return Collections.unmodifiableSet(dependents);
     }
 
@@ -104,7 +105,7 @@ public class InjectorImpl implements Injector {
     }
 
     @Override
-    public <T> T getInstance(final Query<T> query) {
+    public <T> T getInstance(final InjectorQuery<T> query) {
         Objects.requireNonNull(query, "query");
         final Key<T> key = query.getKey();
         final List<BindingImpl<T>> bindings = new ArrayList<>();
@@ -137,7 +138,7 @@ public class InjectorImpl implements Injector {
 
     @Override
     public <T> T getInstance(final Key<T> key) {
-        return getInstance(Query.of(key, getModule()));
+        return getInstance(InjectorQuery.of(key, getModule()));
     }
 
     @Override
@@ -158,7 +159,7 @@ public class InjectorImpl implements Injector {
     @Override
     public <T> T newInstance(final Constructor<T> constructor, final boolean injectMembers) {
         final T instance = Reflections
-                .newInstance(constructor, getParameters(constructor).map(Query::of).map(this::getInstance));
+                .newInstance(constructor, getParameters(constructor).map(InjectorQuery::of).map(this::getInstance));
         if (injectMembers) {
             injectMethods(instance);
         }
@@ -192,7 +193,7 @@ public class InjectorImpl implements Injector {
 
     @Override
     public void injectField(final Object instance, final Field field) {
-        setFieldValue(instance, field, Query.of(field));
+        setFieldValue(instance, field, InjectorQuery.of(field));
     }
 
     @Override
@@ -205,7 +206,7 @@ public class InjectorImpl implements Injector {
 
     @Override
     public Object injectMethod(final Object instance, final Method method) {
-        return invokeMethod(instance, method, getParameters(method).map(Query::of).map(this::getInstance));
+        return invokeMethod(instance, method, getParameters(method).map(InjectorQuery::of).map(this::getInstance));
     }
 
     @Override
@@ -222,7 +223,7 @@ public class InjectorImpl implements Injector {
         injectMethods(instance);
     }
 
-    public void addDependent(final Class<? extends Module> dependent) {
+    public void addDependent(final Class<? extends InjectorModule> dependent) {
         Objects.requireNonNull(dependent, "dependent");
         if (!dependents.add(dependent)) {
             throw new IllegalStateException("Dependent already exist: " + dependent.getName());

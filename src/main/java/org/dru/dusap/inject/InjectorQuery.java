@@ -7,17 +7,17 @@ import java.util.Objects;
 
 import static org.dru.dusap.inject.Keys.key;
 
-public final class Query<T> {
-    public static <T> Query<T> of(final Key<T> key) {
-        return new Query<>(key, null);
+public final class InjectorQuery<T> {
+    public static <T> InjectorQuery<T> of(final Key<T> key) {
+        return new InjectorQuery<>(key, null);
     }
 
-    public static <T> Query<T> of(final Key<T> key, final Class<? extends Module> target) {
+    public static <T> InjectorQuery<T> of(final Key<T> key, final Class<? extends InjectorModule> target) {
         Objects.requireNonNull(target, "target");
-        return new Query<>(key, target);
+        return new InjectorQuery<>(key, target);
     }
 
-    public static <T> Query<T> of(final Key<T> key, final AnnotatedElement element) {
+    public static <T> InjectorQuery<T> of(final Key<T> key, final AnnotatedElement element) {
         Objects.requireNonNull(element, "element");
         if (element.isAnnotationPresent(Source.class)) {
             return of(key, element.getAnnotation(Source.class).value());
@@ -26,18 +26,18 @@ public final class Query<T> {
         }
     }
 
-    public static Query<?> of(final Field field) {
+    public static InjectorQuery<?> of(final Field field) {
         return of(key(field), field);
     }
 
-    public static Query<?> of(final Parameter parameter) {
+    public static InjectorQuery<?> of(final Parameter parameter) {
         return of(key(parameter), parameter);
     }
 
     private final Key<T> key;
-    private final Class<? extends Module> target;
+    private final Class<? extends InjectorModule> target;
 
-    private Query(final Key<T> key, final Class<? extends Module> target) {
+    private InjectorQuery(final Key<T> key, final Class<? extends InjectorModule> target) {
         Objects.requireNonNull(key, "key");
         this.key = key;
         this.target = target;
@@ -47,7 +47,7 @@ public final class Query<T> {
         return key;
     }
 
-    public Class<? extends Module> getTarget() {
+    public Class<? extends InjectorModule> getTarget() {
         return target;
     }
 
@@ -55,7 +55,7 @@ public final class Query<T> {
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final Query<?> query = (Query<?>) o;
+        final InjectorQuery<?> query = (InjectorQuery<?>) o;
         return getKey().equals(query.getKey()) && getTarget().equals(query.getTarget());
     }
 
