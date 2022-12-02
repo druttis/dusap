@@ -104,7 +104,7 @@ class StreamUtilsTest {
     public void testVarShort() throws IOException {
         writeVarShort(out, (1 << 16) - 1);
         final ByteArrayInputStream in = createIn();
-        assertEquals((short) (1 << 16) - 1, readVarShort(in));
+        assertEquals((short) ((1 << 16) - 1), readVarShort(in));
     }
 
     @Test
@@ -116,9 +116,9 @@ class StreamUtilsTest {
 
     @Test
     public void testVarInt() throws IOException {
-        writeVarInt(out, (1 << 32) - 1);
+        writeVarInt(out, (int) ((1L << 32) - 1));
         final ByteArrayInputStream in = createIn();
-        assertEquals((1 << 32) - 1, readVarInt(in));
+        assertEquals((int) ((1L << 32) - 1), readVarInt(in));
     }
 
     @Test
