@@ -10,15 +10,16 @@ import javax.naming.ConfigurationException;
 
 @DependsOn(ConfModule.class)
 public final class JsonModule implements InjectorModule {
-    private static final String SERIALIZE_CLASSNAME_KEY = "json.serializer.className";
-    private static final String DEFAULT_SERIALIZER_CLASSNAME = "org.dru.dusap.json.jackson.JacksonJsonSerializer";
+    private static final String JSON_SERIALIZER_CLASSNAME_KEY = "json.serializer.className";
+    private static final String DEFAULT_JSON_SERIALIZER_CLASSNAME = "org.dru.dusap.json.jackson.JacksonJsonSerializer";
 
     @Provides
     @Singleton
     @Expose
     public JsonSerializer getJsonSerializer(final Conf conf, final Injector injector)
             throws ClassNotFoundException, ConfigurationException {
-        final String serializerClassName = conf.getOrDefault(SERIALIZE_CLASSNAME_KEY, DEFAULT_SERIALIZER_CLASSNAME);
+        final String serializerClassName
+                = conf.getOrDefault(JSON_SERIALIZER_CLASSNAME_KEY, DEFAULT_JSON_SERIALIZER_CLASSNAME);
         final Class<?> serializerClass;
         serializerClass = Class.forName(serializerClassName);
         if (!JsonSerializer.class.isAssignableFrom(serializerClass)) {
