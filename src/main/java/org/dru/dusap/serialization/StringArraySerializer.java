@@ -3,14 +3,23 @@ package org.dru.dusap.serialization;
 import org.dru.dusap.data.DataUtils;
 import org.dru.dusap.io.InputStreamUtils;
 import org.dru.dusap.io.OutputStreamUtils;
+import org.dru.dusap.reference.LazyReference;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.stream.Stream;
 
-public enum StringArraySerializer implements TypeSerializer<String[]> {
-    INSTANCE;
+public final class StringArraySerializer extends AbstractTypeSerializer<String[]> {
+    private static final LazyReference<StringArraySerializer> INSTANCE = LazyReference.by(StringArraySerializer::new);
+
+    public static StringArraySerializer get() {
+        return INSTANCE.get();
+    }
+
+    private StringArraySerializer() {
+        super(String[].class);
+    }
 
     @Override
     public String[] decode(final InputStream in) throws IOException {
